@@ -1,4 +1,4 @@
-module github.com/hash-ak/gomonitor
+module github.com/hash-ak/termidash
 
 go 1.25.4
 
