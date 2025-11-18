@@ -3,6 +3,7 @@ module github.com/hash-ak/termidash
 go 1.25.4
 
 require (
+	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/rivo/tview v0.42.0
 	github.com/shirou/gopsutil/v4 v4.25.10
 )
@@ -10,7 +11,6 @@ require (
 require (
 	github.com/ebitengine/purego v0.9.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/gdamore/tcell/v2 v2.8.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
