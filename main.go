@@ -17,11 +17,20 @@ func main() {
 	//CPU section
 	cpuCountPhys, _ := cpu.Counts(false)
 	cpuCountLogical, _ := cpu.Counts(true)
-	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v", cpuCountPhys, cpuCountLogical)
 	cpuInfo, _ := cpu.Info()
+	cpuFreq := cpuInfo[0].Mhz
+	var cpuFreqSign string
+	if cpuFreq >= 1000 {
+		cpuFreq = cpuFreq / 1000
+		cpuFreqSign = "GHz"
+	} else {
+		cpuFreqSign = "MHz"
+	}
+
 	cpuModelName := cpuInfo[0].ModelName
+	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nFrequency: %.2f%s", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign)
+
 	//cpuManufacturer := cpuInfo[0].VendorID
-	//cpuFreq := cpuInfo[0].Mhz
 
 	cpuPanel := tview.NewTextView()
 	cpuPanel.SetText(cpuCountText)
@@ -113,6 +122,9 @@ func main() {
 		defer ticker.Stop()
 		for range ticker.C {
 			KernelVersion, _ := host.KernelVersion()
+			cpuModelName := cpuInfo[0].ModelName
+			cpuInfo, _ := cpu.Info()
+
 			OSPlatform, _, _, _ := host.PlatformInformation()
 			firstChar := strings.ToUpper(string(OSPlatform[0]))
 			OSPlatform = firstChar + OSPlatform[1:]
@@ -133,17 +145,27 @@ func main() {
 			var memSign string
 			if (totalMem) >= 10000000000000 {
 				totalMem = totalMem / 10000000000000
-				usedMem = usedMem / 10000000000000
 				memSign = "TB"
 			} else if (totalMem) >= 1000000000 {
 				totalMem = totalMem / 1000000000
-				usedMem = usedMem / 1000000000
 				memSign = "GB"
 
-			} else if (totalMem) >= 100000 {
+			} else if (totalMem) >= 1000000 {
 				totalMem = totalMem / 1000000
 				memSign = "MB"
+			}
+			if (usedMem) >= 10000000000000 {
+				usedMem = usedMem / 10000000000000
+				usedMemSign = "TB"
+
+			} else if (usedMem) >= 1000000000 {
+				usedMem = usedMem / 1000000000
+				usedMemSign = "GB"
+
+			} else if (usedMem) >= 1000000 {
 				usedMem = usedMem / 1000000
+				usedMemSign = "MB"
+
 			}
 			var usedMemPercentString string
 			if usedMemPercent >= 80 {
@@ -151,10 +173,22 @@ func main() {
 			} else if usedMemPercent >= 50 {
 				usedMemPercentString = fmt.Sprintf("[yellow]%.2f[::-]", usedMemPercent)
 			} else {
-				usedMemPercentString = fmt.Sprintf("%f", usedMemPercent)
+				usedMemPercentString = fmt.Sprintf("%.2f", usedMemPercent)
 
 			}
-			memText := fmt.Sprintf("Total Memory: %v%s\nUsed Memory: %v%s (%s%%)\n", totalMem, memSign, usedMem, memSign, usedMemPercentString)
+			memText := fmt.Sprintf("Total Memory: %v%s\nUsed Memory: %v%s (%s%%)\n", totalMem, memSign, usedMem, usedMemSign, usedMemPercentString)
+			cpuCountPhys, _ := cpu.Counts(false)
+			cpuCountLogical, _ := cpu.Counts(true)
+			cpuFreq := cpuInfo[0].Mhz
+			var cpuFreqSign string
+			if cpuFreq >= 1000 {
+				cpuFreq = cpuFreq / 1000
+				cpuFreqSign = "GHz"
+			} else {
+				cpuFreqSign = "MHz"
+			}
+			cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nFrequency: %.2f%s", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign)
+
 			app.QueueUpdateDraw(func() {
 				infoPanel.SetText(OSInfoText)
 				memPanel.SetText(memText)
