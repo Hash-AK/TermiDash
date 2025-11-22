@@ -12,6 +12,9 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
+func updateInfos() {
+
+}
 func main() {
 	//uptimeChan := make(chan int)
 	//CPU section
@@ -26,9 +29,10 @@ func main() {
 	} else {
 		cpuFreqSign = "MHz"
 	}
-
+	globalCpuUse, _ := cpu.Percent(1*time.Second, false)
 	cpuModelName := cpuInfo[0].ModelName
-	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nFrequency: %.2f%s", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign)
+
+	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nMax frequency: %.2f%s\nTotal CPU usage: %.2f%%", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign, globalCpuUse)
 
 	//cpuManufacturer := cpuInfo[0].VendorID
 
@@ -180,6 +184,8 @@ func main() {
 			cpuCountPhys, _ := cpu.Counts(false)
 			cpuCountLogical, _ := cpu.Counts(true)
 			cpuFreq := cpuInfo[0].Mhz
+			globalCpuUse, _ := cpu.Percent(1*time.Second, false)
+
 			var cpuFreqSign string
 			if cpuFreq >= 1000 {
 				cpuFreq = cpuFreq / 1000
@@ -187,7 +193,7 @@ func main() {
 			} else {
 				cpuFreqSign = "MHz"
 			}
-			cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nFrequency: %.2f%s", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign)
+			cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nMax frequency: %.2f%s\nTotal CPU usage: %.2f%%", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign, globalCpuUse)
 
 			app.QueueUpdateDraw(func() {
 				infoPanel.SetText(OSInfoText)
