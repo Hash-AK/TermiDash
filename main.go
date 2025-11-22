@@ -125,8 +125,9 @@ func main() {
 	mainGrid.AddItem(infoPanel, 0, 0, 2, 1, 0, 0, false)
 	mainGrid.AddItem(rightColumnLayout, 0, 1, 2, 1, 0, 0, false)
 	app.SetRoot(mainGrid, true)
-	updateInfos(app, cpuPanel, memPanel, infoPanel)
 	go func() {
+		updateInfos(app, cpuPanel, memPanel, infoPanel)
+
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
