@@ -12,12 +12,27 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
+const barWidth = 20
+
+func createBar(percent float64) (string, string) {
+	filledBlocks := int((percent / 100.0) * float64(barWidth))
+	var colorCode string
+	if percent >= 80 {
+		colorCode = "[red]"
+	} else if percent >= 50 {
+		colorCode = "[yellow]"
+	} else {
+		colorCode = "[green]"
+	}
+	filledString := strings.Repeat("█", filledBlocks)
+	emptyString := strings.Repeat("-", barWidth-filledBlocks)
+	return colorCode + "[" + filledString + emptyString + "]" + "[-]", colorCode
+}
 func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.TextView) {
+	//General Info
 	KernelVersion, _ := host.KernelVersion()
 	cpuInfo, _ := cpu.Info()
-
 	cpuModelName := cpuInfo[0].ModelName
-
 	OSPlatform, _, _, _ := host.PlatformInformation()
 	firstChar := strings.ToUpper(string(OSPlatform[0]))
 	OSPlatform = firstChar + OSPlatform[1:]
@@ -30,6 +45,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.Te
 	uptimeString := time.Duration(uptimeInt) * time.Second
 	OSInfoText := fmt.Sprintf("OS : %s %s\nKernel Version: %s\nHostname: %s\nUptime: %s\nCPU Model: %s\n", OSPlatform, OSArch, KernelVersion, hostname, uptimeString, cpuModelName)
 
+	//Memory
 	v, _ := mem.VirtualMemory()
 	totalMem := v.Total
 	usedMem := v.Used
@@ -62,18 +78,33 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.Te
 	}
 	var usedMemPercentString string
 	if usedMemPercent >= 80 {
-		usedMemPercentString = fmt.Sprintf("[red]%.2f[::-]", usedMemPercent)
+		usedMemPercentString = fmt.Sprintf("[red]%.2f[-]", usedMemPercent)
 	} else if usedMemPercent >= 50 {
-		usedMemPercentString = fmt.Sprintf("[yellow]%.2f[::-]", usedMemPercent)
+		usedMemPercentString = fmt.Sprintf("[yellow]%.2f[-]", usedMemPercent)
 	} else {
-		usedMemPercentString = fmt.Sprintf("%.2f", usedMemPercent)
+		usedMemPercentString = fmt.Sprintf("[green]%.2f[-]", usedMemPercent)
 
 	}
-	memText := fmt.Sprintf("Total Memory: %v%s\nUsed Memory: %v%s (%s%%)\n", totalMem, memSign, usedMem, usedMemSign, usedMemPercentString)
+	memUsageBar, memColCode := createBar(usedMemPercent)
+	memBarString := fmt.Sprintf("Memory: %s", memUsageBar)
+	memText := fmt.Sprintf("Total Memory: %v%s\nUsed Memory: %v%s (%s%%)\n%s%s[-]", totalMem, memSign, usedMem, usedMemSign, usedMemPercentString, memColCode, memBarString)
+
+	//CPU
+
 	cpuCountPhys, _ := cpu.Counts(false)
 	cpuCountLogical, _ := cpu.Counts(true)
 	cpuFreq := cpuInfo[0].Mhz
 	globalCpuUse, _ := cpu.Percent(1*time.Second, false)
+	globalCpuUseFloat := globalCpuUse[0]
+	var globalCpuUseString string
+	if globalCpuUseFloat >= 80 {
+		globalCpuUseString = fmt.Sprintf("[red]%.2f%%[-]", globalCpuUseFloat)
+
+	} else if globalCpuUseFloat >= 50 {
+		globalCpuUseString = fmt.Sprintf("[yellow]%.2f%%[-]", globalCpuUseFloat)
+	} else {
+		globalCpuUseString = fmt.Sprintf("[green]%.2f%%[-]", globalCpuUseFloat)
+	}
 
 	var cpuFreqSign string
 	if cpuFreq >= 1000 {
@@ -82,7 +113,15 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.Te
 	} else {
 		cpuFreqSign = "MHz"
 	}
-	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nMax frequency: %.2f%s\nTotal CPU usage: %.2f%%", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign, globalCpuUse)
+	var barStrings string
+	allCoresUsage, _ := cpu.Percent(1*time.Second, true)
+	for i := range allCoresUsage {
+		currentCorePercentBar, colorCode := createBar(allCoresUsage[i])
+		barStrings = fmt.Sprintf("%s%s\nCPU%d[-] %s %s%.0f%%[-]", barStrings, colorCode, i, currentCorePercentBar, colorCode, allCoresUsage[i])
+	}
+	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nMax frequency: %.2f%s\nTotal CPU usage: %s%s", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign, globalCpuUseString, barStrings)
+
+	//Update
 	app.QueueUpdateDraw(func() {
 		infoPanel.SetText(OSInfoText)
 		memPanel.SetText(memText)
@@ -114,8 +153,8 @@ func main() {
 	memPanel.SetDynamicColors(true)
 	// General Layout
 	rightColumnLayout := tview.NewFlex().SetDirection(tview.FlexRow)
-	rightColumnLayout.AddItem(cpuPanel, 0, 1, false)
-	rightColumnLayout.AddItem(memPanel, 0, 2, false)
+	rightColumnLayout.AddItem(cpuPanel, 0, 2, false)
+	rightColumnLayout.AddItem(memPanel, 0, 1, false)
 	app := tview.NewApplication()
 	mainGrid := tview.NewGrid()
 	mainGrid.SetRows(0, 0, 10)
