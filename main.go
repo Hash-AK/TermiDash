@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/mem"
 )
@@ -28,8 +30,18 @@ func createBar(percent float64) (string, string) {
 	emptyString := strings.Repeat("-", barWidth-filledBlocks)
 	return colorCode + "[" + filledString + emptyString + "]" + "[-]", colorCode
 }
-func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.TextView) {
+func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel *tview.TextView) {
 	//General Info
+
+	logoBytes, err := os.ReadFile("logos/arch.ascii")
+	var logo string
+	if err == nil {
+		translatedLogo := tview.TranslateANSI(string(logoBytes))
+		logo = translatedLogo + "\n"
+	} else {
+		logo = "(Logo missing)\n"
+	}
+
 	KernelVersion, _ := host.KernelVersion()
 	cpuInfo, _ := cpu.Info()
 	cpuModelName := cpuInfo[0].ModelName
@@ -43,7 +55,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.Te
 	var uptimeInt int
 	uptimeInt = int(uptime)
 	uptimeString := time.Duration(uptimeInt) * time.Second
-	OSInfoText := fmt.Sprintf("OS : %s %s\nKernel Version: %s\nHostname: %s\nUptime: %s\nCPU Model: %s\n", OSPlatform, OSArch, KernelVersion, hostname, uptimeString, cpuModelName)
+	OSInfoText := fmt.Sprintf("%sOS : %s %s\nKernel Version: %s\nHostname: %s\nUptime: %s\nCPU Model: %s\n", logo, OSPlatform, OSArch, KernelVersion, hostname, uptimeString, cpuModelName)
 
 	//Memory
 	v, _ := mem.VirtualMemory()
@@ -52,8 +64,8 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.Te
 	usedMemPercent := v.UsedPercent
 	var usedMemSign string
 	var memSign string
-	if (totalMem) >= 10000000000000 {
-		totalMem = totalMem / 10000000000000
+	if (totalMem) >= 1000000000000 {
+		totalMem = totalMem / 1000000000000
 		memSign = "TB"
 	} else if (totalMem) >= 1000000000 {
 		totalMem = totalMem / 1000000000
@@ -62,9 +74,12 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.Te
 	} else if (totalMem) >= 1000000 {
 		totalMem = totalMem / 1000000
 		memSign = "MB"
+	} else {
+		totalMem = totalMem / 1000
+		memSign = "KB"
 	}
-	if (usedMem) >= 10000000000000 {
-		usedMem = usedMem / 10000000000000
+	if (usedMem) >= 1000000000000 {
+		usedMem = usedMem / 1000000000000
 		usedMemSign = "TB"
 
 	} else if (usedMem) >= 1000000000 {
@@ -75,6 +90,9 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.Te
 		usedMem = usedMem / 1000000
 		usedMemSign = "MB"
 
+	} else {
+		usedMem = usedMem / 1000
+		usedMemSign = "KB"
 	}
 	var usedMemPercentString string
 	if usedMemPercent >= 80 {
@@ -121,11 +139,59 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel *tview.Te
 	}
 	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nMax frequency: %.2f%s\nTotal CPU usage: %s%s", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign, globalCpuUseString, barStrings)
 
+	//Disk
+
+	var diskUsageText string
+	partitions, _ := disk.Partitions(false)
+	var diskText string
+
+	for i := range partitions {
+		usage, _ := disk.Usage(partitions[i].Mountpoint)
+		totalSpace := float64(usage.Total)
+		usedSpace := float64(usage.Used)
+		var totalSpaceSign string
+		var usedSpaceSign string
+
+		//TB or GB or MB or KB
+		if totalSpace >= 1000000000000 {
+			totalSpace = totalSpace / 1000000000000
+			totalSpaceSign = "TB"
+		} else if totalSpace >= 1000000000 {
+			totalSpace = totalSpace / 1000000000
+			totalSpaceSign = "GB"
+		} else if totalSpace >= 1000000 {
+			totalSpace = totalSpace / 1000000
+			totalSpaceSign = "MB"
+		} else if totalSpace >= 1000 {
+			totalSpace = totalSpace / 1000
+			totalSpaceSign = "KB"
+		}
+
+		//Again TB or GB or MB or KB
+		if usedSpace >= 1000000000000 {
+			usedSpace = usedSpace / 1000000000000
+			usedSpaceSign = "TB"
+		} else if usedSpace >= 1000000000 {
+			usedSpace = usedSpace / 1000000000
+			usedSpaceSign = "GB"
+		} else if usedSpace >= 1000000 {
+			usedSpace = usedSpace / 1000000
+			usedSpaceSign = "MB"
+
+		} else if usedSpace >= 1000 {
+			usedSpace = usedSpace / 1000
+			usedSpaceSign = "KB"
+		}
+		diskBar, _ := createBar(usage.UsedPercent)
+		diskText = fmt.Sprintf("%s%s: %s %.2f%% Used(%.2f %s/%.2f %s)\n", diskText, usage.Path, diskBar, usage.UsedPercent, usedSpace, usedSpaceSign, totalSpace, totalSpaceSign)
+	}
+	diskUsageText = diskText
 	//Update
 	app.QueueUpdateDraw(func() {
 		infoPanel.SetText(OSInfoText)
 		memPanel.SetText(memText)
 		cpuPanel.SetText(cpuCountText)
+		diskPanel.SetText(diskUsageText)
 
 	})
 }
@@ -151,6 +217,14 @@ func main() {
 	memPanel.SetBorder(true)
 	memPanel.SetTitle("Memory")
 	memPanel.SetDynamicColors(true)
+
+	//Disk section
+
+	diskPanel := tview.NewTextView()
+	diskPanel.SetBorder(true)
+	diskPanel.SetTitle("Disk Usage")
+	diskPanel.SetDynamicColors(true)
+
 	// General Layout
 	rightColumnLayout := tview.NewFlex().SetDirection(tview.FlexRow)
 	rightColumnLayout.AddItem(cpuPanel, 0, 2, false)
@@ -160,17 +234,17 @@ func main() {
 	mainGrid.SetRows(0, 0, 10)
 	mainGrid.SetColumns(0, 0)
 	mainGrid.SetBorder(true)
-
+	mainGrid.AddItem(diskPanel, 2, 0, 1, 2, 0, 0, false)
 	mainGrid.AddItem(infoPanel, 0, 0, 2, 1, 0, 0, false)
 	mainGrid.AddItem(rightColumnLayout, 0, 1, 2, 1, 0, 0, false)
 	app.SetRoot(mainGrid, true)
 	go func() {
-		updateInfos(app, cpuPanel, memPanel, infoPanel)
+		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel)
 
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			updateInfos(app, cpuPanel, memPanel, infoPanel)
+			updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel)
 		}
 	}()
 	app.Run()
