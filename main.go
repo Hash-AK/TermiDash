@@ -1,8 +1,8 @@
 package main
 
 import (
+	"embed"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -13,6 +13,9 @@ import (
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/mem"
 )
+
+//go:embed logos
+var logoFiles embed.FS
 
 const barWidth = 20
 
@@ -32,20 +35,20 @@ func createBar(percent float64) (string, string) {
 }
 func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel *tview.TextView) {
 	//General Info
+	OSPlatform, _, _, _ := host.PlatformInformation()
 
-	logoBytes, err := os.ReadFile("logos/arch.ascii")
+	logoBytes, err := logoFiles.ReadFile("logos/" + OSPlatform + ".ascii")
 	var logo string
 	if err == nil {
 		translatedLogo := tview.TranslateANSI(string(logoBytes))
 		logo = translatedLogo + "\n"
 	} else {
-		logo = "(Logo missing)\n"
+		logo = ""
 	}
 
 	KernelVersion, _ := host.KernelVersion()
 	cpuInfo, _ := cpu.Info()
 	cpuModelName := cpuInfo[0].ModelName
-	OSPlatform, _, _, _ := host.PlatformInformation()
 	firstChar := strings.ToUpper(string(OSPlatform[0]))
 	OSPlatform = firstChar + OSPlatform[1:]
 	OSArch, _ := host.KernelArch()
@@ -59,39 +62,39 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 
 	//Memory
 	v, _ := mem.VirtualMemory()
-	totalMem := v.Total
-	usedMem := v.Used
+	totalMem := float64(v.Total)
+	usedMem := float64(v.Used)
 	usedMemPercent := v.UsedPercent
 	var usedMemSign string
 	var memSign string
-	if (totalMem) >= 1000000000000 {
-		totalMem = totalMem / 1000000000000
+	if (totalMem) >= float64(1000000000000) {
+		totalMem = totalMem / float64(1000000000000)
 		memSign = "TB"
-	} else if (totalMem) >= 1000000000 {
-		totalMem = totalMem / 1000000000
+	} else if (totalMem) >= float64(1000000000) {
+		totalMem = totalMem / float64(1000000000)
 		memSign = "GB"
 
-	} else if (totalMem) >= 1000000 {
-		totalMem = totalMem / 1000000
+	} else if (totalMem) >= float64(1000000) {
+		totalMem = totalMem / float64(1000000)
 		memSign = "MB"
 	} else {
-		totalMem = totalMem / 1000
+		totalMem = totalMem / float64(1000)
 		memSign = "KB"
 	}
-	if (usedMem) >= 1000000000000 {
-		usedMem = usedMem / 1000000000000
+	if (usedMem) >= float64(1000000000000) {
+		usedMem = usedMem / float64(1000000000000)
 		usedMemSign = "TB"
 
-	} else if (usedMem) >= 1000000000 {
-		usedMem = usedMem / 1000000000
+	} else if (usedMem) >= float64(1000000000) {
+		usedMem = usedMem / float64(1000000000)
 		usedMemSign = "GB"
 
-	} else if (usedMem) >= 1000000 {
-		usedMem = usedMem / 1000000
+	} else if (usedMem) >= float64(1000000) {
+		usedMem = usedMem / float64(1000000)
 		usedMemSign = "MB"
 
 	} else {
-		usedMem = usedMem / 1000
+		usedMem = usedMem / float64(1000)
 		usedMemSign = "KB"
 	}
 	var usedMemPercentString string
@@ -105,14 +108,13 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	}
 	memUsageBar, memColCode := createBar(usedMemPercent)
 	memBarString := fmt.Sprintf("Memory: %s", memUsageBar)
-	memText := fmt.Sprintf("Total Memory: %v%s\nUsed Memory: %v%s (%s%%)\n%s%s[-]", totalMem, memSign, usedMem, usedMemSign, usedMemPercentString, memColCode, memBarString)
+	memText := fmt.Sprintf("Total Memory: %.2f%s\nUsed Memory: %.2f%s (%s%%)\n%s%s[-]", totalMem, memSign, usedMem, usedMemSign, usedMemPercentString, memColCode, memBarString)
 
 	//CPU
 
 	cpuCountPhys, _ := cpu.Counts(false)
 	cpuCountLogical, _ := cpu.Counts(true)
-	cpuFreq := cpuInfo[0].Mhz
-	globalCpuUse, _ := cpu.Percent(1*time.Second, false)
+	globalCpuUse, _ := cpu.Percent(0, false)
 	globalCpuUseFloat := globalCpuUse[0]
 	var globalCpuUseString string
 	if globalCpuUseFloat >= 80 {
@@ -124,20 +126,13 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 		globalCpuUseString = fmt.Sprintf("[green]%.2f%%[-]", globalCpuUseFloat)
 	}
 
-	var cpuFreqSign string
-	if cpuFreq >= 1000 {
-		cpuFreq = cpuFreq / 1000
-		cpuFreqSign = "GHz"
-	} else {
-		cpuFreqSign = "MHz"
-	}
 	var barStrings string
-	allCoresUsage, _ := cpu.Percent(1*time.Second, true)
+	allCoresUsage, _ := cpu.Percent(0, true)
 	for i := range allCoresUsage {
 		currentCorePercentBar, colorCode := createBar(allCoresUsage[i])
 		barStrings = fmt.Sprintf("%s%s\nCPU%d[-] %s %s%.0f%%[-]", barStrings, colorCode, i, currentCorePercentBar, colorCode, allCoresUsage[i])
 	}
-	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nMax frequency: %.2f%s\nTotal CPU usage: %s%s", cpuCountPhys, cpuCountLogical, cpuFreq, cpuFreqSign, globalCpuUseString, barStrings)
+	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nTotal usage: %s%s", cpuCountPhys, cpuCountLogical, globalCpuUseString, barStrings)
 
 	//Disk
 
