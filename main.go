@@ -36,8 +36,14 @@ func createBar(percent float64) (string, string) {
 func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel *tview.TextView) {
 	//General Info
 	OSPlatform, OSFamily, OSVersion, _ := host.PlatformInformation()
+	logoToSearch := OSPlatform
+	if strings.Contains(logoToSearch, "Microsoft Windows 10") {
+		logoToSearch = "windows10"
+	} else if strings.Contains(logoToSearch, "Microsoft Windows 11") {
+		logoToSearch = "windows11"
+	}
 	//OSPlatform = "fedora"
-	logoBytes, err := logoFiles.ReadFile("logos/" + OSPlatform + ".ascii")
+	logoBytes, err := logoFiles.ReadFile("logos/" + logoToSearch + ".ascii")
 	var logo string
 	if err == nil {
 		translatedLogo := tview.TranslateANSI(string(logoBytes))
@@ -58,7 +64,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	var uptimeInt int
 	uptimeInt = int(uptime)
 	uptimeString := time.Duration(uptimeInt) * time.Second
-	OSInfoText := fmt.Sprintf("%sOS : %s %s\nOS family: %s\nOS version: %s\nKernel Version: %s\nHostname: %s\nUptime: %s\nCPU Model: %s\n", logo, OSPlatform, OSArch, OSFamily, OSVersion, KernelVersion, hostname, uptimeString, cpuModelName)
+	OSInfoText := fmt.Sprintf("%sOS: %s %s\nOS family: %s\nOS version: %s\nKernel Version: %s\nHostname: %s\nUptime: %s\nCPU Model: %s\n", logo, OSPlatform, OSArch, OSFamily, OSVersion, KernelVersion, hostname, uptimeString, cpuModelName)
 
 	//Memory
 	v, _ := mem.VirtualMemory()
