@@ -36,7 +36,7 @@ func createBar(percent float64) (string, string) {
 func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel *tview.TextView) {
 	//General Info
 	OSPlatform, _, _, _ := host.PlatformInformation()
-	OSPlatform = "linuxmint"
+	//OSPlatform = "fedora"
 	logoBytes, err := logoFiles.ReadFile("logos/" + OSPlatform + ".ascii")
 	var logo string
 	if err == nil {
