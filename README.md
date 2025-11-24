@@ -7,6 +7,18 @@ I made this project for [hackclub's Siege](https://siege.hackclub.com). It follo
 It is still in developement so there might be bugs/missign features that I'd like to implement.
 
 This program also displays your current distro's logo on the left panel in a neofetch/fastfetch style. Please do note that it's not 100% failproof, so from my testing sometimes Linux Mint is detected as Debian, or Windows versions may or may not display the correct logo.
+## Screenshots/Demo  
+
+![testing on arch](/assets/TermiDashOnArch.png)  
+_Testing on Arch Linux, pelase note that this was a testing version so the OS Family and OS Version fields are missing_
+
+![testing on windows 10](/assets/TermiDashOnWindows10.png)
+_Testing on Windows 10 Home in a VM, please excuse the 100% CPU usage on the only core_
+
+![testing on windows 11](/assets/TermiDashOnWin11.png)
+_Testing on Windows 11_
+
+
 
 ## Instalation
 
