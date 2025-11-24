@@ -35,7 +35,7 @@ func createBar(percent float64) (string, string) {
 }
 func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel *tview.TextView) {
 	//General Info
-	OSPlatform, _, _, _ := host.PlatformInformation()
+	OSPlatform, OSFamily, OSVersion, _ := host.PlatformInformation()
 	//OSPlatform = "fedora"
 	logoBytes, err := logoFiles.ReadFile("logos/" + OSPlatform + ".ascii")
 	var logo string
@@ -58,7 +58,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	var uptimeInt int
 	uptimeInt = int(uptime)
 	uptimeString := time.Duration(uptimeInt) * time.Second
-	OSInfoText := fmt.Sprintf("%sOS : %s %s\nKernel Version: %s\nHostname: %s\nUptime: %s\nCPU Model: %s\n", logo, OSPlatform, OSArch, KernelVersion, hostname, uptimeString, cpuModelName)
+	OSInfoText := fmt.Sprintf("%sOS : %s %s\nOS family: %s\nOS version: %s\nKernel Version: %s\nHostname: %s\nUptime: %s\nCPU Model: %s\n", logo, OSPlatform, OSArch, OSFamily, OSVersion, KernelVersion, hostname, uptimeString, cpuModelName)
 
 	//Memory
 	v, _ := mem.VirtualMemory()
