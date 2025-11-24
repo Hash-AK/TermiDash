@@ -41,6 +41,8 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 		logoToSearch = "windows10"
 	} else if strings.Contains(logoToSearch, "Microsoft Windows 11") {
 		logoToSearch = "windows11"
+	} else if strings.Contains(logoToSearch, "macOS") || OSFamily == "Darwin" {
+		logoToSearch = "macos"
 	}
 	//OSPlatform = "fedora"
 	logoBytes, err := logoFiles.ReadFile("logos/" + logoToSearch + ".ascii")
