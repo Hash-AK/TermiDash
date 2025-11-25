@@ -19,6 +19,28 @@ var logoFiles embed.FS
 
 const barWidth = 20
 
+func formatBytes(value uint64) string {
+	const base = 1024
+	var returnString string
+	if value < base {
+		returnString = fmt.Sprintf("%d B", value)
+	}
+	if value >= 1099511627776 {
+		returnValue := float64(value) / float64(1099511627776)
+		returnString = fmt.Sprintf("%.2f TiB", returnValue)
+	} else if value >= 1073741824 {
+		returnValue := float64(value) / float64(1073741824)
+		returnString = fmt.Sprintf("%.2f GiB", returnValue)
+	} else if value >= 1048576 {
+		returnValue := float64(value) / float64(1048576)
+		returnString = fmt.Sprintf("%.2f MiB", returnValue)
+	} else if value >= base {
+		returnValue := float64(value) / float64(base)
+		returnString = fmt.Sprintf("%.2f KiB", returnValue)
+
+	}
+	return returnString
+}
 func createBar(percent float64) (string, string) {
 	filledBlocks := int((percent / 100.0) * float64(barWidth))
 	var colorCode string
@@ -43,6 +65,8 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 		logoToSearch = "windows11"
 	} else if strings.Contains(logoToSearch, "macOS") || OSFamily == "Darwin" {
 		logoToSearch = "macos"
+	} else if strings.Contains(OSVersion, "kali") {
+		logoToSearch = "kali"
 	}
 	//OSPlatform = "fedora"
 	logoBytes, err := logoFiles.ReadFile("logos/" + logoToSearch + ".ascii")
@@ -70,41 +94,10 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 
 	//Memory
 	v, _ := mem.VirtualMemory()
-	totalMem := float64(v.Total)
-	usedMem := float64(v.Used)
 	usedMemPercent := v.UsedPercent
-	var usedMemSign string
-	var memSign string
-	if (totalMem) >= float64(1000000000000) {
-		totalMem = totalMem / float64(1000000000000)
-		memSign = "TB"
-	} else if (totalMem) >= float64(1000000000) {
-		totalMem = totalMem / float64(1000000000)
-		memSign = "GB"
+	totalMemString := formatBytes(v.Total)
+	usedMemString := formatBytes(v.Used)
 
-	} else if (totalMem) >= float64(1000000) {
-		totalMem = totalMem / float64(1000000)
-		memSign = "MB"
-	} else {
-		totalMem = totalMem / float64(1000)
-		memSign = "KB"
-	}
-	if (usedMem) >= float64(1000000000000) {
-		usedMem = usedMem / float64(1000000000000)
-		usedMemSign = "TB"
-
-	} else if (usedMem) >= float64(1000000000) {
-		usedMem = usedMem / float64(1000000000)
-		usedMemSign = "GB"
-
-	} else if (usedMem) >= float64(1000000) {
-		usedMem = usedMem / float64(1000000)
-		usedMemSign = "MB"
-
-	} else {
-		usedMem = usedMem / float64(1000)
-		usedMemSign = "KB"
-	}
 	var usedMemPercentString string
 	if usedMemPercent >= 80 {
 		usedMemPercentString = fmt.Sprintf("[red]%.2f[-]", usedMemPercent)
@@ -116,7 +109,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	}
 	memUsageBar, memColCode := createBar(usedMemPercent)
 	memBarString := fmt.Sprintf("Memory: %s", memUsageBar)
-	memText := fmt.Sprintf("Total Memory: %.2f%s\nUsed Memory: %.2f%s (%s%%)\n%s%s[-]", totalMem, memSign, usedMem, usedMemSign, usedMemPercentString, memColCode, memBarString)
+	memText := fmt.Sprintf("Total Memory: %s\nUsed Memory: %s (%s%%)\n%s%s[-]", totalMemString, usedMemString, usedMemPercentString, memColCode, memBarString)
 
 	//CPU
 
@@ -150,43 +143,11 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 
 	for i := range partitions {
 		usage, _ := disk.Usage(partitions[i].Mountpoint)
-		totalSpace := float64(usage.Total)
-		usedSpace := float64(usage.Used)
-		var totalSpaceSign string
-		var usedSpaceSign string
+		totalSpaceString := formatBytes(usage.Total)
+		usedSpaceString := formatBytes(usage.Used)
 
-		//TB or GB or MB or KB
-		if totalSpace >= 1000000000000 {
-			totalSpace = totalSpace / 1000000000000
-			totalSpaceSign = "TB"
-		} else if totalSpace >= 1000000000 {
-			totalSpace = totalSpace / 1000000000
-			totalSpaceSign = "GB"
-		} else if totalSpace >= 1000000 {
-			totalSpace = totalSpace / 1000000
-			totalSpaceSign = "MB"
-		} else if totalSpace >= 1000 {
-			totalSpace = totalSpace / 1000
-			totalSpaceSign = "KB"
-		}
-
-		//Again TB or GB or MB or KB
-		if usedSpace >= 1000000000000 {
-			usedSpace = usedSpace / 1000000000000
-			usedSpaceSign = "TB"
-		} else if usedSpace >= 1000000000 {
-			usedSpace = usedSpace / 1000000000
-			usedSpaceSign = "GB"
-		} else if usedSpace >= 1000000 {
-			usedSpace = usedSpace / 1000000
-			usedSpaceSign = "MB"
-
-		} else if usedSpace >= 1000 {
-			usedSpace = usedSpace / 1000
-			usedSpaceSign = "KB"
-		}
 		diskBar, _ := createBar(usage.UsedPercent)
-		diskText = fmt.Sprintf("%s%s: %s %.2f%% Used(%.2f %s/%.2f %s)\n", diskText, usage.Path, diskBar, usage.UsedPercent, usedSpace, usedSpaceSign, totalSpace, totalSpaceSign)
+		diskText = fmt.Sprintf("%s%s: %s %.2f%% Used(%s/%s)\n", diskText, usage.Path, diskBar, usage.UsedPercent, usedSpaceString, totalSpaceString)
 	}
 	diskUsageText = diskText
 	//Update
@@ -215,10 +176,12 @@ func main() {
 	infoPanel.SetBorder(true)
 	infoPanel.SetTitle("System Information")
 	infoPanel.SetDynamicColors(true)
+	infoPanel.SetBorderColor(tcell.ColorBlueViolet)
 	//Memory section
 	memPanel := tview.NewTextView()
 	memPanel.SetBorder(true)
 	memPanel.SetTitle("Memory")
+	memPanel.SetBorderColor(tcell.ColorBlue)
 	memPanel.SetDynamicColors(true)
 
 	//Disk section
@@ -227,7 +190,7 @@ func main() {
 	diskPanel.SetBorder(true)
 	diskPanel.SetTitle("Disk Usage")
 	diskPanel.SetDynamicColors(true)
-
+	diskPanel.SetBorderColor(tcell.ColorOrange)
 	// General Layout
 	rightColumnLayout := tview.NewFlex().SetDirection(tview.FlexRow)
 	rightColumnLayout.AddItem(cpuPanel, 0, 2, false)
