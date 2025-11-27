@@ -111,21 +111,21 @@ func formatBytes(value uint64) string {
 	}
 	return returnString
 }
-func createBar(percent float64) (string, string) {
+func createBar(theme *Theme, percent float64) (string, string) {
 	filledBlocks := int((percent / 100.0) * float64(barWidth))
 	var colorCode string
 	if percent >= 80 {
-		colorCode = "[red]"
+		colorCode = fmt.Sprintf("[%s]", theme.BarRed.TrueColor().String())
 	} else if percent >= 50 {
-		colorCode = "[yellow]"
+		colorCode = fmt.Sprintf("[%s]", theme.BarYellow.TrueColor().String())
 	} else {
-		colorCode = "[green]"
+		colorCode = fmt.Sprintf("[%s]", theme.BarGreen.TrueColor().String())
 	}
 	filledString := strings.Repeat("█", filledBlocks)
 	emptyString := strings.Repeat("-", barWidth-filledBlocks)
 	return colorCode + "[" + filledString + emptyString + "]" + "[-]", colorCode
 }
-func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel *tview.TextView) {
+func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel *tview.TextView, theme *Theme) {
 	//General Info
 	OSPlatform, OSFamily, OSVersion, _ := host.PlatformInformation()
 	logoToSearch := OSPlatform
@@ -170,14 +170,17 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 
 	var usedMemPercentString string
 	if usedMemPercent >= 80 {
-		usedMemPercentString = fmt.Sprintf("[red]%.2f[-]", usedMemPercent)
+		colorCode := fmt.Sprintf("[%s]", theme.BarRed.TrueColor().String())
+		usedMemPercentString = fmt.Sprintf("%s%.2f[-]", colorCode, usedMemPercent)
 	} else if usedMemPercent >= 50 {
-		usedMemPercentString = fmt.Sprintf("[yellow]%.2f[-]", usedMemPercent)
+		colorCode := fmt.Sprintf("[%s]", theme.BarYellow.TrueColor().String())
+		usedMemPercentString = fmt.Sprintf("%s%.2f[-]", colorCode, usedMemPercent)
 	} else {
-		usedMemPercentString = fmt.Sprintf("[green]%.2f[-]", usedMemPercent)
+		colorCode := fmt.Sprintf("[%s]", theme.BarGreen.TrueColor().String())
+		usedMemPercentString = fmt.Sprintf("%s%.2f[-]", colorCode, usedMemPercent)
 
 	}
-	memUsageBar, memColCode := createBar(usedMemPercent)
+	memUsageBar, memColCode := createBar(theme, usedMemPercent)
 	memBarString := fmt.Sprintf("Memory: %s", memUsageBar)
 	memText := fmt.Sprintf("Total Memory: %s\nUsed Memory: %s (%s%%)\n%s%s[-]", totalMemString, usedMemString, usedMemPercentString, memColCode, memBarString)
 
@@ -200,7 +203,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	var barStrings string
 	allCoresUsage, _ := cpu.Percent(0, true)
 	for i := range allCoresUsage {
-		currentCorePercentBar, colorCode := createBar(allCoresUsage[i])
+		currentCorePercentBar, colorCode := createBar(theme, allCoresUsage[i])
 		barStrings = fmt.Sprintf("%s%s\nCPU%d[-] %s %s%.0f%%[-]", barStrings, colorCode, i, currentCorePercentBar, colorCode, allCoresUsage[i])
 	}
 	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nTotal usage: %s%s", cpuCountPhys, cpuCountLogical, globalCpuUseString, barStrings)
@@ -216,7 +219,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 		totalSpaceString := formatBytes(usage.Total)
 		usedSpaceString := formatBytes(usage.Used)
 
-		diskBar, _ := createBar(usage.UsedPercent)
+		diskBar, _ := createBar(theme, usage.UsedPercent)
 		diskText = fmt.Sprintf("%s%s: %s %.2f%% Used(%s/%s)\n", diskText, usage.Path, diskBar, usage.UsedPercent, usedSpaceString, totalSpaceString)
 	}
 	diskUsageText = diskText
@@ -291,12 +294,12 @@ func main() {
 	mainGrid.AddItem(rightColumnLayout, 0, 1, 2, 1, 0, 0, false)
 	app.SetRoot(mainGrid, true)
 	go func() {
-		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel)
+		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, &defaultTheme)
 
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel)
+			updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, &defaultTheme)
 		}
 	}()
 	app.Run()
