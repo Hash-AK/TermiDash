@@ -20,6 +20,75 @@ var logoFiles embed.FS
 
 const barWidth = 20
 
+type PanelStyle struct {
+	BorderColor tcell.Color
+	TitleColor  tcell.Color
+	TextColor   tcell.Color
+}
+type Theme struct {
+	CPUPanel  PanelStyle
+	MemPanel  PanelStyle
+	InfoPanel PanelStyle
+	DiskPanel PanelStyle
+	TempPanel PanelStyle
+
+	BarRed    tcell.Color
+	BarYellow tcell.Color
+	BarGreen  tcell.Color
+}
+
+var defaultTheme = Theme{
+	CPUPanel: PanelStyle{
+		BorderColor: tcell.ColorGreen,
+		TitleColor:  tcell.ColorGreen,
+		TextColor:   tcell.ColorWhite,
+	},
+	MemPanel: PanelStyle{
+		BorderColor: tcell.ColorBlue,
+		TitleColor:  tcell.ColorBlue,
+		TextColor:   tcell.ColorWhite,
+	},
+	InfoPanel: PanelStyle{
+		BorderColor: tcell.ColorOrange,
+		TitleColor:  tcell.ColorOrange,
+		TextColor:   tcell.ColorWhite,
+	},
+	TempPanel: PanelStyle{
+		BorderColor: tcell.ColorSteelBlue,
+		TitleColor:  tcell.ColorSteelBlue,
+		TextColor:   tcell.ColorWhite,
+	},
+	DiskPanel: PanelStyle{
+		BorderColor: tcell.ColorPurple,
+		TitleColor:  tcell.ColorPurple,
+		TextColor:   tcell.ColorWhite,
+	},
+	BarGreen:  tcell.ColorGreen,
+	BarYellow: tcell.ColorYellow,
+	BarRed:    tcell.ColorRed,
+}
+
+func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView) {
+	cpuPanel.SetBorderColor(theme.CPUPanel.BorderColor)
+	cpuPanel.SetTitleColor(theme.CPUPanel.TitleColor)
+	cpuPanel.SetTextColor(theme.CPUPanel.TextColor)
+
+	memPanel.SetBorderColor(theme.MemPanel.BorderColor)
+	memPanel.SetTitleColor(theme.MemPanel.TitleColor)
+	memPanel.SetTextColor(theme.MemPanel.TextColor)
+
+	infoPanel.SetBorderColor(theme.InfoPanel.BorderColor)
+	infoPanel.SetTitleColor(theme.InfoPanel.TitleColor)
+	infoPanel.SetTextColor(theme.InfoPanel.TextColor)
+
+	tempPanel.SetBorderColor(theme.TempPanel.BorderColor)
+	tempPanel.SetTitleColor(theme.TempPanel.TitleColor)
+	tempPanel.SetTextColor(theme.TempPanel.TextColor)
+
+	diskPanel.SetBorderColor(theme.DiskPanel.BorderColor)
+	diskPanel.SetTitleColor(theme.DiskPanel.TitleColor)
+	diskPanel.SetTextColor(theme.DiskPanel.TextColor)
+}
 func formatBytes(value uint64) string {
 	const base = 1024
 	var returnString string
@@ -180,21 +249,17 @@ func main() {
 	cpuPanel.SetScrollable(true)
 	cpuPanel.SetBorder(true)
 	cpuPanel.SetTitle("CPU")
-	cpuPanel.SetBorderColor(tcell.ColorGreen)
 	cpuPanel.SetDynamicColors(true)
-
 	//FastFetch-style section
 
 	infoPanel := tview.NewTextView()
 	infoPanel.SetBorder(true)
 	infoPanel.SetTitle("System Information")
 	infoPanel.SetDynamicColors(true)
-	infoPanel.SetBorderColor(tcell.ColorBlueViolet)
 	//Memory section
 	memPanel := tview.NewTextView()
 	memPanel.SetBorder(true)
 	memPanel.SetTitle("Memory")
-	memPanel.SetBorderColor(tcell.ColorBlue)
 	memPanel.SetDynamicColors(true)
 
 	//Disk section
@@ -203,13 +268,14 @@ func main() {
 	diskPanel.SetBorder(true)
 	diskPanel.SetTitle("Disk Usage")
 	diskPanel.SetDynamicColors(true)
-	diskPanel.SetBorderColor(tcell.ColorOrange)
 
 	// Temperature section
 	tempPanel := tview.NewTextView()
 	tempPanel.SetBorder(true)
 	tempPanel.SetTitle("Temperatures")
 	tempPanel.SetDynamicColors(true)
+	applyTheme(&defaultTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel)
+
 	// General Layout
 	rightColumnLayout := tview.NewFlex().SetDirection(tview.FlexRow)
 	rightColumnLayout.AddItem(cpuPanel, 0, 1, false)
