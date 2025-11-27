@@ -67,6 +67,36 @@ var defaultTheme = Theme{
 	BarYellow: tcell.ColorYellow,
 	BarRed:    tcell.ColorRed,
 }
+var nordTheme = Theme{
+	CPUPanel: PanelStyle{
+		BorderColor: tcell.GetColor("#3b4252"),
+		TitleColor:  tcell.GetColor("#88c0d0"),
+		TextColor:   tcell.GetColor("#eceff4"),
+	},
+	MemPanel: PanelStyle{
+		BorderColor: tcell.GetColor("#3b4252"),
+		TitleColor:  tcell.GetColor("#81a1c1"),
+		TextColor:   tcell.GetColor("#eceff4"),
+	},
+	InfoPanel: PanelStyle{
+		BorderColor: tcell.GetColor("#3b4252"),
+		TitleColor:  tcell.GetColor("#b48ead"),
+		TextColor:   tcell.GetColor("#D8DEE9"),
+	},
+	TempPanel: PanelStyle{
+		BorderColor: tcell.GetColor("#3b4252"),
+		TitleColor:  tcell.GetColor("#5E81AC"),
+		TextColor:   tcell.GetColor("#ECEFF4"),
+	},
+	DiskPanel: PanelStyle{
+		BorderColor: tcell.GetColor("#3b4252"),
+		TitleColor:  tcell.GetColor("#8FBCBB"),
+		TextColor:   tcell.GetColor("#eceff4"),
+	},
+	BarGreen:  tcell.GetColor("#a3be8c"),
+	BarYellow: tcell.GetColor("#ebcb8b"),
+	BarRed:    tcell.GetColor("#bf616a"),
+}
 
 func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView) {
 	cpuPanel.SetBorderColor(theme.CPUPanel.BorderColor)
@@ -192,12 +222,15 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	globalCpuUseFloat := globalCpuUse[0]
 	var globalCpuUseString string
 	if globalCpuUseFloat >= 80 {
-		globalCpuUseString = fmt.Sprintf("[red]%.2f%%[-]", globalCpuUseFloat)
+		colorCode := fmt.Sprintf("[%s]", theme.BarRed.TrueColor().String())
+		globalCpuUseString = fmt.Sprintf("%s%.2f%%[-]", colorCode, globalCpuUseFloat)
 
 	} else if globalCpuUseFloat >= 50 {
-		globalCpuUseString = fmt.Sprintf("[yellow]%.2f%%[-]", globalCpuUseFloat)
+		colorCode := fmt.Sprintf("[%s]", theme.BarYellow.TrueColor().String())
+		globalCpuUseString = fmt.Sprintf("%s%.2f%%[-]", colorCode, globalCpuUseFloat)
 	} else {
-		globalCpuUseString = fmt.Sprintf("[green]%.2f%%[-]", globalCpuUseFloat)
+		colorCode := fmt.Sprintf("[%s]", theme.BarGreen.TrueColor().String())
+		globalCpuUseString = fmt.Sprintf("%s%.2f%%[-]", colorCode, globalCpuUseFloat)
 	}
 
 	var barStrings string
