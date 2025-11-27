@@ -112,7 +112,7 @@ var nordTheme = Theme{
 	Backgroundcolor: tcell.GetColor("#2E3440"),
 }
 
-func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView) {
+func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView, grid *tview.Grid) {
 	cpuPanel.SetBorderColor(theme.CPUPanel.BorderColor)
 	cpuPanel.SetTitleColor(theme.CPUPanel.TitleColor)
 	cpuPanel.SetTextColor(theme.CPUPanel.TextColor)
@@ -137,6 +137,8 @@ func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPane
 	diskPanel.SetTitleColor(theme.DiskPanel.TitleColor)
 	diskPanel.SetTextColor(theme.DiskPanel.TextColor)
 	diskPanel.SetBackgroundColor(theme.DiskPanel.BackGroundColor)
+	tview.Styles.PrimitiveBackgroundColor = theme.Backgroundcolor
+	grid.SetBackgroundColor(theme.Backgroundcolor)
 }
 func formatBytes(value uint64) string {
 	const base = 1024
@@ -328,7 +330,6 @@ func main() {
 	tempPanel.SetBorder(true)
 	tempPanel.SetTitle("Temperatures")
 	tempPanel.SetDynamicColors(true)
-	applyTheme(&defaultTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel)
 
 	// General Layout
 	rightColumnLayout := tview.NewFlex().SetDirection(tview.FlexRow)
@@ -343,6 +344,8 @@ func main() {
 	mainGrid.AddItem(diskPanel, 2, 0, 1, 2, 0, 0, false)
 	mainGrid.AddItem(infoPanel, 0, 0, 2, 1, 0, 0, false)
 	mainGrid.AddItem(rightColumnLayout, 0, 1, 2, 1, 0, 0, false)
+	applyTheme(&defaultTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid)
+
 	pages := tview.NewPages()
 
 	pages.AddPage("dashboard", mainGrid, true, true)
