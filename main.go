@@ -12,6 +12,7 @@ import (
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/shirou/gopsutil/v4/sensors"
 )
 
 //go:embed logos
@@ -55,7 +56,7 @@ func createBar(percent float64) (string, string) {
 	emptyString := strings.Repeat("-", barWidth-filledBlocks)
 	return colorCode + "[" + filledString + emptyString + "]" + "[-]", colorCode
 }
-func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel *tview.TextView) {
+func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel *tview.TextView) {
 	//General Info
 	OSPlatform, OSFamily, OSVersion, _ := host.PlatformInformation()
 	logoToSearch := OSPlatform
@@ -150,12 +151,23 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 		diskText = fmt.Sprintf("%s%s: %s %.2f%% Used(%s/%s)\n", diskText, usage.Path, diskBar, usage.UsedPercent, usedSpaceString, totalSpaceString)
 	}
 	diskUsageText = diskText
+	//Temperature
+
+	temperatures, _ := sensors.SensorsTemperatures()
+	var cpuText string
+	for i := range temperatures {
+		if strings.Contains(temperatures[i].SensorKey, "coretemp") || strings.Contains(temperatures[i].SensorKey, "k10temp") {
+			cpuTemp := temperatures[i].Temperature
+			cpuText = cpuText + fmt.Sprintf("%s : %.2fC\n", temperatures[i].SensorKey, cpuTemp)
+		}
+	}
 	//Update
 	app.QueueUpdateDraw(func() {
 		infoPanel.SetText(OSInfoText)
 		memPanel.SetText(memText)
 		cpuPanel.SetText(cpuCountText)
 		diskPanel.SetText(diskUsageText)
+		tempPanel.SetText(cpuText)
 
 	})
 }
@@ -165,6 +177,7 @@ func main() {
 	//cpuManufacturer := cpuInfo[0].VendorID
 
 	cpuPanel := tview.NewTextView()
+	cpuPanel.SetScrollable(true)
 	cpuPanel.SetBorder(true)
 	cpuPanel.SetTitle("CPU")
 	cpuPanel.SetBorderColor(tcell.ColorGreen)
@@ -191,10 +204,17 @@ func main() {
 	diskPanel.SetTitle("Disk Usage")
 	diskPanel.SetDynamicColors(true)
 	diskPanel.SetBorderColor(tcell.ColorOrange)
+
+	// Temperature section
+	tempPanel := tview.NewTextView()
+	tempPanel.SetBorder(true)
+	tempPanel.SetTitle("Temperatures")
+	tempPanel.SetDynamicColors(true)
 	// General Layout
 	rightColumnLayout := tview.NewFlex().SetDirection(tview.FlexRow)
-	rightColumnLayout.AddItem(cpuPanel, 0, 2, false)
+	rightColumnLayout.AddItem(cpuPanel, 0, 1, false)
 	rightColumnLayout.AddItem(memPanel, 0, 1, false)
+	rightColumnLayout.AddItem(tempPanel, 0, 1, false)
 	app := tview.NewApplication()
 	mainGrid := tview.NewGrid()
 	mainGrid.SetRows(0, 0, 10)
@@ -205,12 +225,12 @@ func main() {
 	mainGrid.AddItem(rightColumnLayout, 0, 1, 2, 1, 0, 0, false)
 	app.SetRoot(mainGrid, true)
 	go func() {
-		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel)
+		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel)
 
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel)
+			updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel)
 		}
 	}()
 	app.Run()
