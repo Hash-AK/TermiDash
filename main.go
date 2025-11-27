@@ -21,9 +21,10 @@ var logoFiles embed.FS
 const barWidth = 20
 
 type PanelStyle struct {
-	BorderColor tcell.Color
-	TitleColor  tcell.Color
-	TextColor   tcell.Color
+	BorderColor     tcell.Color
+	TitleColor      tcell.Color
+	TextColor       tcell.Color
+	BackGroundColor tcell.Color
 }
 type Theme struct {
 	CPUPanel  PanelStyle
@@ -32,92 +33,110 @@ type Theme struct {
 	DiskPanel PanelStyle
 	TempPanel PanelStyle
 
-	BarRed    tcell.Color
-	BarYellow tcell.Color
-	BarGreen  tcell.Color
+	BarRed          tcell.Color
+	BarYellow       tcell.Color
+	BarGreen        tcell.Color
+	Backgroundcolor tcell.Color
 }
 
 var defaultTheme = Theme{
 	CPUPanel: PanelStyle{
-		BorderColor: tcell.ColorGreen,
-		TitleColor:  tcell.ColorGreen,
-		TextColor:   tcell.ColorWhite,
+		BorderColor:     tcell.ColorGreen,
+		TitleColor:      tcell.ColorGreen,
+		TextColor:       tcell.ColorWhite,
+		BackGroundColor: tcell.ColorBlack,
 	},
 	MemPanel: PanelStyle{
-		BorderColor: tcell.ColorBlue,
-		TitleColor:  tcell.ColorBlue,
-		TextColor:   tcell.ColorWhite,
+		BorderColor:     tcell.ColorBlue,
+		TitleColor:      tcell.ColorBlue,
+		TextColor:       tcell.ColorWhite,
+		BackGroundColor: tcell.ColorBlack,
 	},
 	InfoPanel: PanelStyle{
-		BorderColor: tcell.ColorOrange,
-		TitleColor:  tcell.ColorOrange,
-		TextColor:   tcell.ColorWhite,
+		BorderColor:     tcell.ColorOrange,
+		TitleColor:      tcell.ColorOrange,
+		TextColor:       tcell.ColorWhite,
+		BackGroundColor: tcell.ColorBlack,
 	},
 	TempPanel: PanelStyle{
-		BorderColor: tcell.ColorSteelBlue,
-		TitleColor:  tcell.ColorSteelBlue,
-		TextColor:   tcell.ColorWhite,
+		BorderColor:     tcell.ColorSteelBlue,
+		TitleColor:      tcell.ColorSteelBlue,
+		TextColor:       tcell.ColorWhite,
+		BackGroundColor: tcell.ColorBlack,
 	},
 	DiskPanel: PanelStyle{
-		BorderColor: tcell.ColorPurple,
-		TitleColor:  tcell.ColorPurple,
-		TextColor:   tcell.ColorWhite,
+		BorderColor:     tcell.ColorPurple,
+		TitleColor:      tcell.ColorPurple,
+		TextColor:       tcell.ColorWhite,
+		BackGroundColor: tcell.ColorBlack,
 	},
-	BarGreen:  tcell.ColorGreen,
-	BarYellow: tcell.ColorYellow,
-	BarRed:    tcell.ColorRed,
+	BarGreen:        tcell.ColorGreen,
+	BarYellow:       tcell.ColorYellow,
+	BarRed:          tcell.ColorRed,
+	Backgroundcolor: tcell.ColorBlack,
 }
 var nordTheme = Theme{
 	CPUPanel: PanelStyle{
-		BorderColor: tcell.GetColor("#3b4252"),
-		TitleColor:  tcell.GetColor("#88c0d0"),
-		TextColor:   tcell.GetColor("#eceff4"),
+		BorderColor:     tcell.GetColor("#3b4252"),
+		TitleColor:      tcell.GetColor("#88c0d0"),
+		TextColor:       tcell.GetColor("#eceff4"),
+		BackGroundColor: tcell.GetColor("#2e3440"),
 	},
 	MemPanel: PanelStyle{
-		BorderColor: tcell.GetColor("#3b4252"),
-		TitleColor:  tcell.GetColor("#81a1c1"),
-		TextColor:   tcell.GetColor("#eceff4"),
+		BorderColor:     tcell.GetColor("#3b4252"),
+		TitleColor:      tcell.GetColor("#81a1c1"),
+		TextColor:       tcell.GetColor("#eceff4"),
+		BackGroundColor: tcell.GetColor("#2e3440"),
 	},
 	InfoPanel: PanelStyle{
-		BorderColor: tcell.GetColor("#3b4252"),
-		TitleColor:  tcell.GetColor("#b48ead"),
-		TextColor:   tcell.GetColor("#D8DEE9"),
+		BorderColor:     tcell.GetColor("#3b4252"),
+		TitleColor:      tcell.GetColor("#b48ead"),
+		TextColor:       tcell.GetColor("#D8DEE9"),
+		BackGroundColor: tcell.GetColor("#2e3440"),
 	},
 	TempPanel: PanelStyle{
-		BorderColor: tcell.GetColor("#3b4252"),
-		TitleColor:  tcell.GetColor("#5E81AC"),
-		TextColor:   tcell.GetColor("#ECEFF4"),
+		BorderColor:     tcell.GetColor("#3b4252"),
+		TitleColor:      tcell.GetColor("#5E81AC"),
+		TextColor:       tcell.GetColor("#ECEFF4"),
+		BackGroundColor: tcell.GetColor("#2e3440"),
 	},
 	DiskPanel: PanelStyle{
-		BorderColor: tcell.GetColor("#3b4252"),
-		TitleColor:  tcell.GetColor("#8FBCBB"),
-		TextColor:   tcell.GetColor("#eceff4"),
+		BorderColor:     tcell.GetColor("#3b4252"),
+		TitleColor:      tcell.GetColor("#8FBCBB"),
+		TextColor:       tcell.GetColor("#eceff4"),
+		BackGroundColor: tcell.GetColor("#2e3440"),
 	},
-	BarGreen:  tcell.GetColor("#a3be8c"),
-	BarYellow: tcell.GetColor("#ebcb8b"),
-	BarRed:    tcell.GetColor("#bf616a"),
+	BarGreen:        tcell.GetColor("#a3be8c"),
+	BarYellow:       tcell.GetColor("#ebcb8b"),
+	BarRed:          tcell.GetColor("#bf616a"),
+	Backgroundcolor: tcell.GetColor("#2E3440"),
 }
 
 func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView) {
 	cpuPanel.SetBorderColor(theme.CPUPanel.BorderColor)
 	cpuPanel.SetTitleColor(theme.CPUPanel.TitleColor)
 	cpuPanel.SetTextColor(theme.CPUPanel.TextColor)
+	cpuPanel.SetBackgroundColor(theme.CPUPanel.BackGroundColor)
 
 	memPanel.SetBorderColor(theme.MemPanel.BorderColor)
 	memPanel.SetTitleColor(theme.MemPanel.TitleColor)
 	memPanel.SetTextColor(theme.MemPanel.TextColor)
+	memPanel.SetBackgroundColor(theme.MemPanel.BackGroundColor)
 
 	infoPanel.SetBorderColor(theme.InfoPanel.BorderColor)
 	infoPanel.SetTitleColor(theme.InfoPanel.TitleColor)
 	infoPanel.SetTextColor(theme.InfoPanel.TextColor)
+	infoPanel.SetBackgroundColor(theme.InfoPanel.BackGroundColor)
 
 	tempPanel.SetBorderColor(theme.TempPanel.BorderColor)
 	tempPanel.SetTitleColor(theme.TempPanel.TitleColor)
 	tempPanel.SetTextColor(theme.TempPanel.TextColor)
+	tempPanel.SetBackgroundColor(theme.TempPanel.BackGroundColor)
 
 	diskPanel.SetBorderColor(theme.DiskPanel.BorderColor)
 	diskPanel.SetTitleColor(theme.DiskPanel.TitleColor)
 	diskPanel.SetTextColor(theme.DiskPanel.TextColor)
+	diskPanel.SetBackgroundColor(theme.DiskPanel.BackGroundColor)
 }
 func formatBytes(value uint64) string {
 	const base = 1024
@@ -280,7 +299,6 @@ func main() {
 	//CPU section
 
 	//cpuManufacturer := cpuInfo[0].VendorID
-
 	cpuPanel := tview.NewTextView()
 	cpuPanel.SetScrollable(true)
 	cpuPanel.SetBorder(true)
@@ -325,6 +343,10 @@ func main() {
 	mainGrid.AddItem(diskPanel, 2, 0, 1, 2, 0, 0, false)
 	mainGrid.AddItem(infoPanel, 0, 0, 2, 1, 0, 0, false)
 	mainGrid.AddItem(rightColumnLayout, 0, 1, 2, 1, 0, 0, false)
+	pages := tview.NewPages()
+
+	pages.AddPage("dashboard", mainGrid, true, true)
+
 	app.SetRoot(mainGrid, true)
 	go func() {
 		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, &defaultTheme)
