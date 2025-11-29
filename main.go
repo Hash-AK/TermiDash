@@ -33,10 +33,12 @@ type Theme struct {
 	DiskPanel PanelStyle
 	TempPanel PanelStyle
 
-	BarRed          tcell.Color
-	BarYellow       tcell.Color
-	BarGreen        tcell.Color
-	Backgroundcolor tcell.Color
+	BarRed                tcell.Color
+	BarYellow             tcell.Color
+	BarGreen              tcell.Color
+	Backgroundcolor       tcell.Color
+	DropDownOptionStyle   tcell.Style
+	DropDownSelectedStyle tcell.Style
 }
 
 var defaultTheme = Theme{
@@ -44,36 +46,38 @@ var defaultTheme = Theme{
 		BorderColor:     tcell.ColorGreen,
 		TitleColor:      tcell.ColorGreen,
 		TextColor:       tcell.ColorWhite,
-		BackGroundColor: tcell.ColorBlack,
+		BackGroundColor: tcell.GetColor("#000000"),
 	},
 	MemPanel: PanelStyle{
 		BorderColor:     tcell.ColorBlue,
 		TitleColor:      tcell.ColorBlue,
 		TextColor:       tcell.ColorWhite,
-		BackGroundColor: tcell.ColorBlack,
+		BackGroundColor: tcell.GetColor("#000000"),
 	},
 	InfoPanel: PanelStyle{
 		BorderColor:     tcell.ColorOrange,
 		TitleColor:      tcell.ColorOrange,
 		TextColor:       tcell.ColorWhite,
-		BackGroundColor: tcell.ColorBlack,
+		BackGroundColor: tcell.GetColor("#000000"),
 	},
 	TempPanel: PanelStyle{
 		BorderColor:     tcell.ColorSteelBlue,
 		TitleColor:      tcell.ColorSteelBlue,
 		TextColor:       tcell.ColorWhite,
-		BackGroundColor: tcell.ColorBlack,
+		BackGroundColor: tcell.GetColor("#000000"),
 	},
 	DiskPanel: PanelStyle{
 		BorderColor:     tcell.ColorPurple,
 		TitleColor:      tcell.ColorPurple,
 		TextColor:       tcell.ColorWhite,
-		BackGroundColor: tcell.ColorBlack,
+		BackGroundColor: tcell.GetColor("#000000"),
 	},
-	BarGreen:        tcell.ColorGreen,
-	BarYellow:       tcell.ColorYellow,
-	BarRed:          tcell.ColorRed,
-	Backgroundcolor: tcell.ColorBlack,
+	BarGreen:              tcell.ColorGreen,
+	BarYellow:             tcell.ColorYellow,
+	BarRed:                tcell.ColorRed,
+	Backgroundcolor:       tcell.GetColor("#000000"),
+	DropDownOptionStyle:   tcell.StyleDefault.Foreground(tcell.GetColor("#ffffff")).Background(tcell.GetColor("#000000")),
+	DropDownSelectedStyle: tcell.StyleDefault.Foreground(tcell.GetColor("#000000")).Background(tcell.ColorLightGray),
 }
 var nordTheme = Theme{
 	CPUPanel: PanelStyle{
@@ -106,13 +110,16 @@ var nordTheme = Theme{
 		TextColor:       tcell.GetColor("#eceff4"),
 		BackGroundColor: tcell.GetColor("#2e3440"),
 	},
-	BarGreen:        tcell.GetColor("#a3be8c"),
-	BarYellow:       tcell.GetColor("#ebcb8b"),
-	BarRed:          tcell.GetColor("#bf616a"),
-	Backgroundcolor: tcell.GetColor("#2E3440"),
+	BarGreen:              tcell.GetColor("#a3be8c"),
+	BarYellow:             tcell.GetColor("#ebcb8b"),
+	BarRed:                tcell.GetColor("#bf616a"),
+	Backgroundcolor:       tcell.GetColor("#2E3440"),
+	DropDownOptionStyle:   tcell.StyleDefault.Foreground(tcell.GetColor("#eceff4")).Background(tcell.GetColor("#434c5e")),
+	DropDownSelectedStyle: tcell.StyleDefault.Foreground(tcell.GetColor("#2e3440")).Background(tcell.GetColor("#88c0d0")),
 }
+var themesList []string
 
-func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView, grid *tview.Grid) {
+func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView, grid *tview.Grid, themeSelector *tview.DropDown) {
 	cpuPanel.SetBorderColor(theme.CPUPanel.BorderColor)
 	cpuPanel.SetTitleColor(theme.CPUPanel.TitleColor)
 	cpuPanel.SetTextColor(theme.CPUPanel.TextColor)
@@ -139,13 +146,16 @@ func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPane
 	diskPanel.SetBackgroundColor(theme.DiskPanel.BackGroundColor)
 	tview.Styles.PrimitiveBackgroundColor = theme.Backgroundcolor
 	grid.SetBackgroundColor(theme.Backgroundcolor)
+
+	themeSelector.SetLabelColor(theme.InfoPanel.TitleColor)
+	themeSelector.SetFieldTextColor(theme.InfoPanel.TextColor)
+	themeSelector.SetFieldBackgroundColor(theme.InfoPanel.BackGroundColor)
+	themeSelector.SetListStyles(theme.DropDownOptionStyle, theme.DropDownSelectedStyle)
 }
 func formatBytes(value uint64) string {
 	const base = 1024
 	var returnString string
-	if value < base {
-		returnString = fmt.Sprintf("%d B", value)
-	}
+
 	if value >= 1099511627776 {
 		returnValue := float64(value) / float64(1099511627776)
 		returnString = fmt.Sprintf("%.2f TiB", returnValue)
@@ -158,6 +168,9 @@ func formatBytes(value uint64) string {
 	} else if value >= base {
 		returnValue := float64(value) / float64(base)
 		returnString = fmt.Sprintf("%.2f KiB", returnValue)
+
+	} else if value < base {
+		returnString = fmt.Sprintf("%d B", value)
 
 	}
 	return returnString
@@ -298,6 +311,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	})
 }
 func main() {
+	themesList = append(themesList, "default", "Nord", "catpuccin-mocha")
 	//CPU section
 
 	//cpuManufacturer := cpuInfo[0].VendorID
@@ -344,14 +358,45 @@ func main() {
 	mainGrid.AddItem(diskPanel, 2, 0, 1, 2, 0, 0, false)
 	mainGrid.AddItem(infoPanel, 0, 0, 2, 1, 0, 0, false)
 	mainGrid.AddItem(rightColumnLayout, 0, 1, 2, 1, 0, 0, false)
-	applyTheme(&defaultTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid)
+	settings := tview.NewForm()
+	settings.SetBorder(true)
+	settings.SetTitle("Settings - ESC to go back")
+	themeSelector := tview.NewDropDown()
+	themeSelector.SetLabel("Select a theme (hit Enter): ")
+	themeSelector.SetOptions(themesList, nil)
+
+	settings.AddFormItem(themeSelector)
+
+	applyTheme(&defaultTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector)
 
 	pages := tview.NewPages()
+	pages.AddPage("settings", settings, true, false)
 
 	pages.AddPage("dashboard", mainGrid, true, true)
-
-	app.SetRoot(mainGrid, true)
+	app.SetRoot(pages, true)
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Rune() == 'q' {
+			app.Stop()
+			return nil
+		}
+		curentPage, _ := pages.GetFrontPage()
+		if event.Rune() == 's' {
+			if curentPage == "dashboard" {
+				pages.SwitchToPage("settings")
+			} else {
+				pages.SwitchToPage("dashboard")
+			}
+			return nil
+		}
+		if event.Key() == tcell.KeyEscape {
+			if curentPage == "settings" {
+				pages.SwitchToPage("dashboard")
+			}
+		}
+		return event
+	})
 	go func() {
+
 		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, &defaultTheme)
 
 		ticker := time.NewTicker(1 * time.Second)
