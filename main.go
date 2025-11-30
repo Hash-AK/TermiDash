@@ -45,9 +45,21 @@ type Config struct {
 	BarFilledChar rune
 	BarEmptyChar  rune
 }
+type StaticInfo struct {
+	Logo          string
+	OS            string
+	OSFamily      string
+	OSVersion     string
+	KernelVersion string
+	KernelArch    string
+	Hostname      string
+	CPUPhysCore   int
+	CPULogCore    int
+	CPUModel      string
+}
 
 var appConfig = Config{
-	BarFilledChar: '█',
+	BarFilledChar: '❄',
 	BarEmptyChar:  '-',
 }
 var defaultTheme = Theme{
@@ -240,42 +252,23 @@ func createBar(theme *Theme, percent float64, filledChar, emptyChar rune) (strin
 	emptyString := strings.Repeat(string(emptyChar), barWidth-filledBlocks)
 	return colorCode + "[" + filledString + emptyString + "]" + "[-]", colorCode
 }
-func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel *tview.TextView, theme *Theme) {
+func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel *tview.TextView, theme *Theme, staticInfo *StaticInfo) {
 	//General Info
-	OSPlatform, OSFamily, OSVersion, _ := host.PlatformInformation()
-	logoToSearch := OSPlatform
-	if strings.Contains(logoToSearch, "Microsoft Windows 10") {
-		logoToSearch = "windows10"
-	} else if strings.Contains(logoToSearch, "Microsoft Windows 11") {
-		logoToSearch = "windows11"
-	} else if strings.Contains(logoToSearch, "macOS") || OSFamily == "Darwin" {
-		logoToSearch = "macos"
-	} else if strings.Contains(OSVersion, "kali") {
-		logoToSearch = "kali"
-	}
-	//OSPlatform = "fedora"
-	logoBytes, err := logoFiles.ReadFile("logos/" + logoToSearch + ".ascii")
-	var logo string
-	if err == nil {
-		translatedLogo := tview.TranslateANSI(string(logoBytes))
-		logo = translatedLogo + "\n"
-	} else {
-		logo = ""
-	}
+	OSPlatform := staticInfo.OS
+	OSFamily := staticInfo.OSFamily
+	OSVersion := staticInfo.OSVersion
+	KernelVersion := staticInfo.KernelVersion
+	cpuModelName := staticInfo.CPUModel
 
-	KernelVersion, _ := host.KernelVersion()
-	cpuInfo, _ := cpu.Info()
-	cpuModelName := cpuInfo[0].ModelName
-	firstChar := strings.ToUpper(string(OSPlatform[0]))
-	OSPlatform = firstChar + OSPlatform[1:]
-	OSArch, _ := host.KernelArch()
+	OSArch := staticInfo.KernelArch
 	hostInfo, _ := host.Info()
-	hostname := hostInfo.Hostname
+	hostname := staticInfo.Hostname
 	uptime := hostInfo.Uptime
 	var uptimeInt int
 	uptimeInt = int(uptime)
 	uptimeString := time.Duration(uptimeInt) * time.Second
-	OSInfoText := fmt.Sprintf("%sOS: %s %s\nOS family: %s\nOS version: %s\nKernel Version: %s\nHostname: %s\nUptime: %s\nCPU Model: %s\n", logo, OSPlatform, OSArch, OSFamily, OSVersion, KernelVersion, hostname, uptimeString, cpuModelName)
+	logo := staticInfo.Logo
+	OSInfoText := fmt.Sprintf("%s❄ OS: %s %s\n❄ OS family: %s\n❄ OS version: %s\n❄ Kernel Version: %s\n❄ yHostname: %s\n❄ Uptime: %s\n❄ CPU Model: %s\n", logo, OSPlatform, OSArch, OSFamily, OSVersion, KernelVersion, hostname, uptimeString, cpuModelName)
 
 	//Memory
 	v, _ := mem.VirtualMemory()
@@ -301,8 +294,8 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 
 	//CPU
 
-	cpuCountPhys, _ := cpu.Counts(false)
-	cpuCountLogical, _ := cpu.Counts(true)
+	cpuCountPhys := staticInfo.CPUPhysCore
+	cpuCountLogical := staticInfo.CPULogCore
 	globalCpuUse, _ := cpu.Percent(0, false)
 	globalCpuUseFloat := globalCpuUse[0]
 	var globalCpuUseString string
@@ -362,6 +355,48 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	})
 }
 func main() {
+	staticPlatform, staticFam, staticVersion, _ := host.PlatformInformation()
+	logoToSearch := staticPlatform
+	if strings.Contains(logoToSearch, "Microsoft Windows 10") {
+		logoToSearch = "windows10"
+	} else if strings.Contains(logoToSearch, "Microsoft Windows 11") {
+		logoToSearch = "windows11"
+	} else if strings.Contains(logoToSearch, "macOS") || staticFam == "Darwin" {
+		logoToSearch = "macos"
+	} else if strings.Contains(staticVersion, "kali") {
+		logoToSearch = "kali"
+	}
+	logoBytes, err := logoFiles.ReadFile("logos/" + logoToSearch + ".ascii")
+	var logo string
+	if err == nil {
+		translatedLogo := tview.TranslateANSI(string(logoBytes))
+		logo = translatedLogo + "\n"
+	} else {
+		logo = ""
+	}
+	cpuInfo, _ := cpu.Info()
+	cpuPhys, _ := cpu.Counts(false)
+	cpuLog, _ := cpu.Counts(true)
+	cpuModelName := cpuInfo[0].ModelName
+	hostInfo, _ := host.Info()
+
+	firstChar := strings.ToUpper(string(staticPlatform[0]))
+	staticPlatform = firstChar + staticPlatform[1:]
+	kernelVersion, _ := host.KernelVersion()
+	hostname := hostInfo.Hostname
+	kernelArch, _ := host.KernelArch()
+	staticInfo := StaticInfo{
+		Logo:          logo,
+		OS:            staticPlatform,
+		OSFamily:      staticFam,
+		OSVersion:     staticVersion,
+		KernelVersion: kernelVersion,
+		KernelArch:    kernelArch,
+		Hostname:      hostname,
+		CPUPhysCore:   cpuPhys,
+		CPULogCore:    cpuLog,
+		CPUModel:      cpuModelName,
+	}
 	themesList = append(themesList, "Default", "Nord", "Snow Day")
 	//CPU section
 
@@ -465,12 +500,12 @@ func main() {
 	})
 	go func() {
 
-		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, currentTheme)
+		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, currentTheme, &staticInfo)
 
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, currentTheme)
+			updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, currentTheme, &staticInfo)
 		}
 	}()
 	app.Run()
