@@ -3,6 +3,8 @@ package main
 import (
 	"embed"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -27,6 +29,7 @@ type PanelStyle struct {
 	TextColor       tcell.Color
 	BackGroundColor tcell.Color
 }
+
 type Theme struct {
 	CPUPanel  PanelStyle
 	MemPanel  PanelStyle
@@ -180,6 +183,14 @@ var snowTheme = Theme{
 }
 var themesList []string
 
+func saveToFile(themeName string) {
+	configDir, _ := os.UserConfigDir()
+	path := filepath.Join(configDir, "TermiDash")
+	_ = os.Mkdir(path, 0700)
+	fullPath := filepath.Join(path, "config.json")
+	f, _ := os.Open(fullPath)
+	f.WriteString("testing")
+}
 func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView, grid *tview.Grid, themeSelector *tview.DropDown, settings *tview.Form) {
 	cpuPanel.SetBorderColor(theme.CPUPanel.BorderColor)
 	cpuPanel.SetTitleColor(theme.CPUPanel.TitleColor)
@@ -339,10 +350,15 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	temperatures, _ := sensors.SensorsTemperatures()
 	var cpuText string
 	for i := range temperatures {
-		if strings.Contains(temperatures[i].SensorKey, "coretemp") || strings.Contains(temperatures[i].SensorKey, "k10temp") {
+		if strings.Contains(temperatures[i].SensorKey, "coretemp") || strings.Contains(temperatures[i].SensorKey, "k10temp") || strings.Contains(temperatures[i].SensorKey, "ackage") {
 			cpuTemp := temperatures[i].Temperature
 			cpuText = cpuText + fmt.Sprintf("%s : %.2fC\n", temperatures[i].SensorKey, cpuTemp)
+
 		}
+
+	}
+	if cpuText == "" {
+		cpuText = "No temperature sensors found."
 	}
 	//Update
 	app.QueueUpdateDraw(func() {
