@@ -44,6 +44,14 @@ type Theme struct {
 	DropDownOptionStyle   tcell.Style
 	DropDownSelectedStyle tcell.Style
 }
+type UserPreferences struct {
+	BarFilledChar rune   `toml:"BarFilledChar"`
+	BarEmptyChar  rune   `toml:"BarEmptyChar"`
+	ThemeName     string `toml:"ThemeName"`
+}
+
+var userPrefs UserPreferences
+
 type Config struct {
 	BarFilledChar rune
 	BarEmptyChar  rune
@@ -183,13 +191,17 @@ var snowTheme = Theme{
 }
 var themesList []string
 
-func saveToFile(themeName string) {
+func saveToFile(prefs UserPreferences) {
 	configDir, _ := os.UserConfigDir()
 	path := filepath.Join(configDir, "TermiDash")
 	_ = os.Mkdir(path, 0700)
 	fullPath := filepath.Join(path, "config.json")
-	f, _ := os.Open(fullPath)
-	f.WriteString("testing")
+	f, _ := os.Create(fullPath)
+	defer f.Close()
+
+}
+func loadOrCreateUsersPreferences() {
+
 }
 func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView, grid *tview.Grid, themeSelector *tview.DropDown, settings *tview.Form) {
 	cpuPanel.SetBorderColor(theme.CPUPanel.BorderColor)
