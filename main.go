@@ -322,7 +322,9 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	}
 	memUsageBar, memColCode := createBar(theme, usedMemPercent, userPrefs.BarFilledChar, userPrefs.BarEmptyChar)
 	memBarString := fmt.Sprintf("Memory: %s", memUsageBar)
-	memText := fmt.Sprintf("Total Memory: %s\nUsed Memory: %s (%s%%)\n%s%s[-]", totalMemString, usedMemString, usedMemPercentString, memColCode, memBarString)
+	currentTime := time.Now()
+	formatedTime := currentTime.Format("2006-01-02 15:04:05")
+	memText := fmt.Sprintf("Total Memory: %s\nUsed Memory: %s (%s%%)\n%s%s[-]\n%s", totalMemString, usedMemString, usedMemPercentString, memColCode, memBarString, formatedTime)
 
 	//CPU
 
@@ -514,9 +516,9 @@ func main() {
 			app.Stop()
 			return nil
 		}
-		curentPage, _ := pages.GetFrontPage()
+		currentPage, _ := pages.GetFrontPage()
 		if event.Rune() == 's' {
-			if curentPage == "dashboard" {
+			if currentPage == "dashboard" {
 				pages.SwitchToPage("settings")
 			} else {
 				pages.SwitchToPage("dashboard")
@@ -524,7 +526,7 @@ func main() {
 			return nil
 		}
 		if event.Key() == tcell.KeyEscape {
-			if curentPage == "settings" {
+			if currentPage == "settings" {
 				pages.SwitchToPage("dashboard")
 			}
 		}
