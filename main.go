@@ -268,7 +268,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	uptimeInt = int(uptime)
 	uptimeString := time.Duration(uptimeInt) * time.Second
 	logo := staticInfo.Logo
-	OSInfoText := fmt.Sprintf("%s❄ OS: %s %s\n❄ OS family: %s\n❄ OS version: %s\n❄ Kernel Version: %s\n❄ yHostname: %s\n❄ Uptime: %s\n❄ CPU Model: %s\n", logo, OSPlatform, OSArch, OSFamily, OSVersion, KernelVersion, hostname, uptimeString, cpuModelName)
+	OSInfoText := fmt.Sprintf("%s❄ OS: %s %s\n❄ OS family: %s\n❄ OS version: %s\n❄ Kernel Version: %s\n❄ Hostname: %s\n❄ Uptime: %s\n❄ CPU Model: %s\n", logo, OSPlatform, OSArch, OSFamily, OSVersion, KernelVersion, hostname, uptimeString, cpuModelName)
 
 	//Memory
 	v, _ := mem.VirtualMemory()
