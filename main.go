@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/shirou/gopsutil/v4/cpu"
@@ -45,17 +46,13 @@ type Theme struct {
 	DropDownSelectedStyle tcell.Style
 }
 type UserPreferences struct {
-	BarFilledChar rune   `toml:"BarFilledChar"`
-	BarEmptyChar  rune   `toml:"BarEmptyChar"`
+	BarFilledChar string `toml:"BarFilledChar"`
+	BarEmptyChar  string `toml:"BarEmptyChar"`
 	ThemeName     string `toml:"ThemeName"`
 }
 
 var userPrefs UserPreferences
 
-type Config struct {
-	BarFilledChar rune
-	BarEmptyChar  rune
-}
 type StaticInfo struct {
 	Logo          string
 	OS            string
@@ -69,10 +66,12 @@ type StaticInfo struct {
 	CPUModel      string
 }
 
-var appConfig = Config{
-	BarFilledChar: '❄',
-	BarEmptyChar:  '-',
-}
+const defaultUserPreferencesTOML = `
+BarFilledChar = "❄"
+BarEmptyChar = "-"
+ThemeName = "Default"
+`
+
 var defaultTheme = Theme{
 	CPUPanel: PanelStyle{
 		BorderColor:     tcell.ColorGreen,
@@ -194,13 +193,23 @@ var themesList []string
 func saveToFile(prefs UserPreferences) {
 	configDir, _ := os.UserConfigDir()
 	path := filepath.Join(configDir, "TermiDash")
-	_ = os.Mkdir(path, 0700)
-	fullPath := filepath.Join(path, "config.json")
+	_ = os.MkdirAll(path, 0700)
+	fullPath := filepath.Join(path, "config.toml")
 	f, _ := os.Create(fullPath)
 	defer f.Close()
+	toml.NewEncoder(f).Encode(prefs)
 
 }
 func loadOrCreateUsersPreferences() {
+	configDir, _ := os.UserConfigDir()
+	path := filepath.Join(configDir, "TermiDash")
+	fullPath := filepath.Join(path, "config.toml")
+	os.MkdirAll(path, 0755)
+	_, err := os.Stat(fullPath)
+	if os.IsNotExist(err) {
+		os.WriteFile(fullPath, []byte(defaultUserPreferencesTOML), 0644)
+	}
+	toml.DecodeFile(fullPath, &userPrefs)
 
 }
 func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView, grid *tview.Grid, themeSelector *tview.DropDown, settings *tview.Form) {
@@ -261,7 +270,7 @@ func formatBytes(value uint64) string {
 	}
 	return returnString
 }
-func createBar(theme *Theme, percent float64, filledChar, emptyChar rune) (string, string) {
+func createBar(theme *Theme, percent float64, filledChar, emptyChar string) (string, string) {
 	filledBlocks := int((percent / 100.0) * float64(barWidth))
 	var colorCode string
 	if percent >= 80 {
@@ -271,8 +280,8 @@ func createBar(theme *Theme, percent float64, filledChar, emptyChar rune) (strin
 	} else {
 		colorCode = fmt.Sprintf("[%s]", theme.BarGreen.TrueColor().String())
 	}
-	filledString := strings.Repeat(string(filledChar), filledBlocks)
-	emptyString := strings.Repeat(string(emptyChar), barWidth-filledBlocks)
+	filledString := strings.Repeat(filledChar, filledBlocks)
+	emptyString := strings.Repeat(emptyChar, barWidth-filledBlocks)
 	return colorCode + "[" + filledString + emptyString + "]" + "[-]", colorCode
 }
 func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel *tview.TextView, theme *Theme, staticInfo *StaticInfo) {
@@ -311,7 +320,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 		usedMemPercentString = fmt.Sprintf("%s%.2f[-]", colorCode, usedMemPercent)
 
 	}
-	memUsageBar, memColCode := createBar(theme, usedMemPercent, appConfig.BarFilledChar, appConfig.BarEmptyChar)
+	memUsageBar, memColCode := createBar(theme, usedMemPercent, userPrefs.BarFilledChar, userPrefs.BarEmptyChar)
 	memBarString := fmt.Sprintf("Memory: %s", memUsageBar)
 	memText := fmt.Sprintf("Total Memory: %s\nUsed Memory: %s (%s%%)\n%s%s[-]", totalMemString, usedMemString, usedMemPercentString, memColCode, memBarString)
 
@@ -337,7 +346,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	var barStrings string
 	allCoresUsage, _ := cpu.Percent(0, true)
 	for i := range allCoresUsage {
-		currentCorePercentBar, colorCode := createBar(theme, allCoresUsage[i], appConfig.BarFilledChar, appConfig.BarEmptyChar)
+		currentCorePercentBar, colorCode := createBar(theme, allCoresUsage[i], userPrefs.BarFilledChar, userPrefs.BarEmptyChar)
 		barStrings = fmt.Sprintf("%s%s\nCPU%d[-] %s %s%.0f%%[-]", barStrings, colorCode, i, currentCorePercentBar, colorCode, allCoresUsage[i])
 	}
 	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nTotal usage: %s%s", cpuCountPhys, cpuCountLogical, globalCpuUseString, barStrings)
@@ -353,7 +362,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 		totalSpaceString := formatBytes(usage.Total)
 		usedSpaceString := formatBytes(usage.Used)
 
-		diskBar, _ := createBar(theme, usage.UsedPercent, appConfig.BarFilledChar, appConfig.BarEmptyChar)
+		diskBar, _ := createBar(theme, usage.UsedPercent, userPrefs.BarFilledChar, userPrefs.BarEmptyChar)
 		diskText = fmt.Sprintf("%s%s: %s %.2f%% Used(%s/%s)\n", diskText, usage.Path, diskBar, usage.UsedPercent, usedSpaceString, totalSpaceString)
 	}
 	diskUsageText = diskText
@@ -383,6 +392,19 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	})
 }
 func main() {
+	loadOrCreateUsersPreferences()
+	if userPrefs.ThemeName != "" {
+		switch userPrefs.ThemeName {
+		case "Nord":
+			currentTheme = &nordTheme
+		case "Snow Day":
+			currentTheme = &snowTheme
+		case "Default":
+			currentTheme = &defaultTheme
+		default:
+			currentTheme = &defaultTheme
+		}
+	}
 	staticPlatform, staticFam, staticVersion, _ := host.PlatformInformation()
 	logoToSearch := staticPlatform
 	if strings.Contains(logoToSearch, "Microsoft Windows 10") {
@@ -407,11 +429,10 @@ func main() {
 	cpuLog, _ := cpu.Counts(true)
 	cpuModelName := cpuInfo[0].ModelName
 	hostInfo, _ := host.Info()
-
+	hostname := hostInfo.Hostname
 	firstChar := strings.ToUpper(string(staticPlatform[0]))
 	staticPlatform = firstChar + staticPlatform[1:]
 	kernelVersion, _ := host.KernelVersion()
-	hostname := hostInfo.Hostname
 	kernelArch, _ := host.KernelArch()
 	staticInfo := StaticInfo{
 		Logo:          logo,
@@ -523,6 +544,8 @@ func main() {
 			currentTheme = &snowTheme
 			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector, settings)
 		}
+		userPrefs.ThemeName = selection
+		saveToFile(userPrefs)
 		pages.SwitchToPage("dashboard")
 
 	})
