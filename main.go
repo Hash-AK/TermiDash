@@ -17,6 +17,7 @@ import (
 
 //go:embed logos
 var logoFiles embed.FS
+var currentTheme = &defaultTheme
 
 const barWidth = 20
 
@@ -40,7 +41,15 @@ type Theme struct {
 	DropDownOptionStyle   tcell.Style
 	DropDownSelectedStyle tcell.Style
 }
+type Config struct {
+	BarFilledChar rune
+	BarEmptyChar  rune
+}
 
+var appConfig = Config{
+	BarFilledChar: '█',
+	BarEmptyChar:  '-',
+}
 var defaultTheme = Theme{
 	CPUPanel: PanelStyle{
 		BorderColor:     tcell.ColorGreen,
@@ -117,9 +126,49 @@ var nordTheme = Theme{
 	DropDownOptionStyle:   tcell.StyleDefault.Foreground(tcell.GetColor("#eceff4")).Background(tcell.GetColor("#434c5e")),
 	DropDownSelectedStyle: tcell.StyleDefault.Foreground(tcell.GetColor("#2e3440")).Background(tcell.GetColor("#88c0d0")),
 }
+
+var snowTheme = Theme{
+	CPUPanel: PanelStyle{
+		BorderColor:     tcell.GetColor("#d8dee9"),
+		TitleColor:      tcell.GetColor("#5e81ac"),
+		TextColor:       tcell.GetColor("#2e3440"),
+		BackGroundColor: tcell.GetColor("#e5e9f0"),
+	},
+	MemPanel: PanelStyle{
+		BorderColor:     tcell.GetColor("#d8dee9"),
+		TitleColor:      tcell.GetColor("#5e81ac"),
+		TextColor:       tcell.GetColor("#2e3440"),
+		BackGroundColor: tcell.GetColor("#e5e9f0"),
+	},
+	InfoPanel: PanelStyle{
+		BorderColor:     tcell.GetColor("#d8dee9"),
+		TitleColor:      tcell.GetColor("#5e81ac"),
+		TextColor:       tcell.GetColor("#2e3440"),
+		BackGroundColor: tcell.GetColor("#e5e9f0"),
+	},
+	DiskPanel: PanelStyle{
+		BorderColor:     tcell.GetColor("#d8dee9"),
+		TitleColor:      tcell.GetColor("#5e81ac"),
+		TextColor:       tcell.GetColor("#2e3440"),
+		BackGroundColor: tcell.GetColor("#e5e9f0"),
+	},
+	TempPanel: PanelStyle{
+		BorderColor:     tcell.GetColor("#d8dee9"),
+		TitleColor:      tcell.GetColor("#5e81ac"),
+		TextColor:       tcell.GetColor("#2e3440"),
+		BackGroundColor: tcell.GetColor("#e5e9f0"),
+	},
+	BarRed:          tcell.GetColor("#bf616a"),
+	BarYellow:       tcell.GetColor("#ebcb8b"),
+	BarGreen:        tcell.GetColor("#a3be8c"),
+	Backgroundcolor: tcell.GetColor("#eceff4"),
+
+	DropDownOptionStyle:   tcell.StyleDefault.Foreground(tcell.GetColor("#2e3440")).Background(tcell.GetColor("#eceff4a4")),
+	DropDownSelectedStyle: tcell.StyleDefault.Foreground(tcell.GetColor("#eceff4")).Background(tcell.GetColor("#5e81ac")),
+}
 var themesList []string
 
-func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView, grid *tview.Grid, themeSelector *tview.DropDown) {
+func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView, grid *tview.Grid, themeSelector *tview.DropDown, settings *tview.Form) {
 	cpuPanel.SetBorderColor(theme.CPUPanel.BorderColor)
 	cpuPanel.SetTitleColor(theme.CPUPanel.TitleColor)
 	cpuPanel.SetTextColor(theme.CPUPanel.TextColor)
@@ -151,6 +200,8 @@ func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPane
 	themeSelector.SetFieldTextColor(theme.InfoPanel.TextColor)
 	themeSelector.SetFieldBackgroundColor(theme.InfoPanel.BackGroundColor)
 	themeSelector.SetListStyles(theme.DropDownOptionStyle, theme.DropDownSelectedStyle)
+	settings.SetBackgroundColor(theme.Backgroundcolor)
+
 }
 func formatBytes(value uint64) string {
 	const base = 1024
@@ -175,7 +226,7 @@ func formatBytes(value uint64) string {
 	}
 	return returnString
 }
-func createBar(theme *Theme, percent float64) (string, string) {
+func createBar(theme *Theme, percent float64, filledChar, emptyChar rune) (string, string) {
 	filledBlocks := int((percent / 100.0) * float64(barWidth))
 	var colorCode string
 	if percent >= 80 {
@@ -185,8 +236,8 @@ func createBar(theme *Theme, percent float64) (string, string) {
 	} else {
 		colorCode = fmt.Sprintf("[%s]", theme.BarGreen.TrueColor().String())
 	}
-	filledString := strings.Repeat("█", filledBlocks)
-	emptyString := strings.Repeat("-", barWidth-filledBlocks)
+	filledString := strings.Repeat(string(filledChar), filledBlocks)
+	emptyString := strings.Repeat(string(emptyChar), barWidth-filledBlocks)
 	return colorCode + "[" + filledString + emptyString + "]" + "[-]", colorCode
 }
 func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel *tview.TextView, theme *Theme) {
@@ -244,7 +295,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 		usedMemPercentString = fmt.Sprintf("%s%.2f[-]", colorCode, usedMemPercent)
 
 	}
-	memUsageBar, memColCode := createBar(theme, usedMemPercent)
+	memUsageBar, memColCode := createBar(theme, usedMemPercent, appConfig.BarFilledChar, appConfig.BarEmptyChar)
 	memBarString := fmt.Sprintf("Memory: %s", memUsageBar)
 	memText := fmt.Sprintf("Total Memory: %s\nUsed Memory: %s (%s%%)\n%s%s[-]", totalMemString, usedMemString, usedMemPercentString, memColCode, memBarString)
 
@@ -270,7 +321,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	var barStrings string
 	allCoresUsage, _ := cpu.Percent(0, true)
 	for i := range allCoresUsage {
-		currentCorePercentBar, colorCode := createBar(theme, allCoresUsage[i])
+		currentCorePercentBar, colorCode := createBar(theme, allCoresUsage[i], appConfig.BarFilledChar, appConfig.BarEmptyChar)
 		barStrings = fmt.Sprintf("%s%s\nCPU%d[-] %s %s%.0f%%[-]", barStrings, colorCode, i, currentCorePercentBar, colorCode, allCoresUsage[i])
 	}
 	cpuCountText := fmt.Sprintf("CPU count physical/logical: %v/%v\nTotal usage: %s%s", cpuCountPhys, cpuCountLogical, globalCpuUseString, barStrings)
@@ -286,7 +337,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 		totalSpaceString := formatBytes(usage.Total)
 		usedSpaceString := formatBytes(usage.Used)
 
-		diskBar, _ := createBar(theme, usage.UsedPercent)
+		diskBar, _ := createBar(theme, usage.UsedPercent, appConfig.BarFilledChar, appConfig.BarEmptyChar)
 		diskText = fmt.Sprintf("%s%s: %s %.2f%% Used(%s/%s)\n", diskText, usage.Path, diskBar, usage.UsedPercent, usedSpaceString, totalSpaceString)
 	}
 	diskUsageText = diskText
@@ -311,7 +362,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	})
 }
 func main() {
-	themesList = append(themesList, "default", "Nord", "catpuccin-mocha")
+	themesList = append(themesList, "Default", "Nord", "Snow Day")
 	//CPU section
 
 	//cpuManufacturer := cpuInfo[0].VendorID
@@ -364,10 +415,10 @@ func main() {
 	themeSelector := tview.NewDropDown()
 	themeSelector.SetLabel("Select a theme (hit Enter): ")
 	themeSelector.SetOptions(themesList, nil)
-
+	themeSelector.SetCurrentOption(0)
 	settings.AddFormItem(themeSelector)
 
-	applyTheme(&defaultTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector)
+	applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector, settings)
 
 	pages := tview.NewPages()
 	pages.AddPage("settings", settings, true, false)
@@ -395,14 +446,31 @@ func main() {
 		}
 		return event
 	})
+	settings.AddButton("Save and close", func() {
+		_, selection := themeSelector.GetCurrentOption()
+		switch selection {
+		case "Default":
+			currentTheme = &defaultTheme
+			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector, settings)
+
+		case "Nord":
+			currentTheme = &nordTheme
+			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector, settings)
+		case "Snow Day":
+			currentTheme = &snowTheme
+			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector, settings)
+		}
+		pages.SwitchToPage("dashboard")
+
+	})
 	go func() {
 
-		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, &defaultTheme)
+		updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, currentTheme)
 
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, &defaultTheme)
+			updateInfos(app, cpuPanel, memPanel, infoPanel, diskPanel, tempPanel, currentTheme)
 		}
 	}()
 	app.Run()
