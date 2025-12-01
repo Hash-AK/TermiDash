@@ -22,8 +22,7 @@ The selected theme and the characteres for the bars are stored in _TOML_ in the 
 ### Windows
 ``` %APPDATA%\Local\TermiDash\config.toml```
 
-
-
+To change your theme, you can press 's' then change it from the dropdown.
 This program also displays your current distro's logo on the left panel in a neofetch/fastfetch style. Please do note that it's not 100% failproof, for example Zorin is detected as Debian. Please also note that if your terminal doesn't support correctly all the colors some text may appear weirdly/not appear at all.
 ## Screenshots/Demo  
 ### V1.0.0
@@ -39,6 +38,9 @@ _Testing on Windows 11_
 ### V2.0.0
 ![testing on LM XFCE](/assets/TermiDashV2-LM-XFCE.png)
 _Testing the v2.0.0 on Linux Mint, with the Nord theme applied from teh settings_
+
+![Arch with the Snow Day theme](/assets/TermiDashV2-Arch-SnowDay.png)
+_Testing the v2.0.0 on Arch Linux, with the blinding Snow Theme_
 
 ## Instalation
 
