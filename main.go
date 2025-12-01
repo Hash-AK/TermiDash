@@ -212,7 +212,7 @@ func loadOrCreateUsersPreferences() {
 	toml.DecodeFile(fullPath, &userPrefs)
 
 }
-func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel *tview.TextView, grid *tview.Grid, themeSelector *tview.DropDown, settings *tview.Form) {
+func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, keyBindMenu *tview.TextView, grid *tview.Grid, themeSelector *tview.DropDown, settings *tview.Form) {
 	cpuPanel.SetBorderColor(theme.CPUPanel.BorderColor)
 	cpuPanel.SetTitleColor(theme.CPUPanel.TitleColor)
 	cpuPanel.SetTextColor(theme.CPUPanel.TextColor)
@@ -237,6 +237,10 @@ func applyTheme(theme *Theme, cpuPanel, memPanel, infoPanel, tempPanel, diskPane
 	diskPanel.SetTitleColor(theme.DiskPanel.TitleColor)
 	diskPanel.SetTextColor(theme.DiskPanel.TextColor)
 	diskPanel.SetBackgroundColor(theme.DiskPanel.BackGroundColor)
+
+	keyBindMenu.SetBorderColor(theme.InfoPanel.BorderColor)
+	keyBindMenu.SetTextColor(theme.InfoPanel.TextColor)
+	keyBindMenu.SetBackgroundColor(theme.Backgroundcolor)
 	tview.Styles.PrimitiveBackgroundColor = theme.Backgroundcolor
 	grid.SetBackgroundColor(theme.Backgroundcolor)
 
@@ -291,7 +295,8 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	OSVersion := staticInfo.OSVersion
 	KernelVersion := staticInfo.KernelVersion
 	cpuModelName := staticInfo.CPUModel
-
+	currentTime := time.Now()
+	formatedTime := currentTime.Format("2006-01-02 15:04:05")
 	OSArch := staticInfo.KernelArch
 	hostInfo, _ := host.Info()
 	hostname := staticInfo.Hostname
@@ -300,7 +305,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	uptimeInt = int(uptime)
 	uptimeString := time.Duration(uptimeInt) * time.Second
 	logo := staticInfo.Logo
-	OSInfoText := fmt.Sprintf("%s❄ OS: %s %s\n❄ OS family: %s\n❄ OS version: %s\n❄ Kernel Version: %s\n❄ Hostname: %s\n❄ Uptime: %s\n❄ CPU Model: %s\n", logo, OSPlatform, OSArch, OSFamily, OSVersion, KernelVersion, hostname, uptimeString, cpuModelName)
+	OSInfoText := fmt.Sprintf("%s❄ OS: %s %s\n❄ OS family: %s\n❄ OS version: %s\n❄ Kernel Version: %s\n❄ Hostname: %s\n❄ Uptime: %s\n❄ Current date: %s\nCPU Model: %s", logo, OSPlatform, OSArch, OSFamily, OSVersion, KernelVersion, hostname, uptimeString, formatedTime, cpuModelName)
 
 	//Memory
 	v, _ := mem.VirtualMemory()
@@ -322,9 +327,7 @@ func updateInfos(app *tview.Application, cpuPanel, memPanel, infoPanel, diskPane
 	}
 	memUsageBar, memColCode := createBar(theme, usedMemPercent, userPrefs.BarFilledChar, userPrefs.BarEmptyChar)
 	memBarString := fmt.Sprintf("Memory: %s", memUsageBar)
-	currentTime := time.Now()
-	formatedTime := currentTime.Format("2006-01-02 15:04:05")
-	memText := fmt.Sprintf("Total Memory: %s\nUsed Memory: %s (%s%%)\n%s%s[-]\n%s", totalMemString, usedMemString, usedMemPercentString, memColCode, memBarString, formatedTime)
+	memText := fmt.Sprintf("Total Memory: %s\nUsed Memory: %s (%s%%)\n%s%s[-]", totalMemString, usedMemString, usedMemPercentString, memColCode, memBarString)
 
 	//CPU
 
@@ -457,6 +460,7 @@ func main() {
 	cpuPanel.SetBorder(true)
 	cpuPanel.SetTitle("CPU")
 	cpuPanel.SetDynamicColors(true)
+	cpuPanel.ScrollToBeginning()
 	//FastFetch-style section
 
 	infoPanel := tview.NewTextView()
@@ -484,7 +488,7 @@ func main() {
 
 	// General Layout
 	rightColumnLayout := tview.NewFlex().SetDirection(tview.FlexRow)
-	rightColumnLayout.AddItem(cpuPanel, 0, 1, false)
+	rightColumnLayout.AddItem(cpuPanel, 0, 1, true)
 	rightColumnLayout.AddItem(memPanel, 0, 1, false)
 	rightColumnLayout.AddItem(tempPanel, 0, 1, false)
 	app := tview.NewApplication()
@@ -497,18 +501,22 @@ func main() {
 	mainGrid.AddItem(rightColumnLayout, 0, 1, 2, 1, 0, 0, false)
 	settings := tview.NewForm()
 	settings.SetBorder(true)
-	settings.SetTitle("Settings - ESC to go back")
+	settings.SetTitle("Settings - ESC or 's' to go back")
 	themeSelector := tview.NewDropDown()
 	themeSelector.SetLabel("Select a theme (hit Enter): ")
 	themeSelector.SetOptions(themesList, nil)
 	themeSelector.SetCurrentOption(0)
 	settings.AddFormItem(themeSelector)
 
-	applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector, settings)
+	keyBindMenu := tview.NewTextView()
+	keyBindMenu.SetBorder(true)
+	keyBindMenu.SetTitle("Keybinds - ESC or 'h' to go back")
+	keyBindMenu.SetText("'q'/CTRL + C - quit the application\n's' - open the settings page\nTAB/Arrow keys - navigate in the settings page\nESC - quit the settings/help page\n'h' - open the help page (this page)\n\n\nMade by @Hash-AK (https://github.com/hash-ak)")
+	applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, keyBindMenu, mainGrid, themeSelector, settings)
 
 	pages := tview.NewPages()
 	pages.AddPage("settings", settings, true, false)
-
+	pages.AddPage("help", keyBindMenu, true, false)
 	pages.AddPage("dashboard", mainGrid, true, true)
 	app.SetRoot(pages, true)
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -520,13 +528,20 @@ func main() {
 		if event.Rune() == 's' {
 			if currentPage == "dashboard" {
 				pages.SwitchToPage("settings")
-			} else {
+			} else if currentPage == "settings" {
 				pages.SwitchToPage("dashboard")
 			}
 			return nil
 		}
+		if event.Rune() == 'h' {
+			if currentPage == "dashboard" {
+				pages.SwitchToPage("help")
+			} else if currentPage == "help" {
+				pages.SwitchToPage("dashboard")
+			}
+		}
 		if event.Key() == tcell.KeyEscape {
-			if currentPage == "settings" {
+			if currentPage == "settings" || currentPage == "help" {
 				pages.SwitchToPage("dashboard")
 			}
 		}
@@ -537,14 +552,14 @@ func main() {
 		switch selection {
 		case "Default":
 			currentTheme = &defaultTheme
-			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector, settings)
+			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, keyBindMenu, mainGrid, themeSelector, settings)
 
 		case "Nord":
 			currentTheme = &nordTheme
-			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector, settings)
+			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, keyBindMenu, mainGrid, themeSelector, settings)
 		case "Snow Day":
 			currentTheme = &snowTheme
-			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, mainGrid, themeSelector, settings)
+			applyTheme(currentTheme, cpuPanel, memPanel, infoPanel, tempPanel, diskPanel, keyBindMenu, mainGrid, themeSelector, settings)
 		}
 		userPrefs.ThemeName = selection
 		saveToFile(userPrefs)
