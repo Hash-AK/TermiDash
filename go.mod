@@ -4,7 +4,7 @@ go 1.25.4
 
 require github.com/rivo/tview v0.42.0
 
-require github.com/BurntSushi/toml v1.5.0 // indirect
+require github.com/BurntSushi/toml v1.5.0
 
 require (
 	github.com/ebitengine/purego v0.9.0 // indirect
