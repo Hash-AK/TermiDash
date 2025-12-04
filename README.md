@@ -1,5 +1,7 @@
 # TermiDash : the TERMInal DASHboard
 
+https://github.com/user-attachments/assets/7c46644d-7f4c-41de-8905-623870b33043
+
 Golang terminal dashboard that shows the current computer's specs, the available and used ressources and more. Heavily inspired by [btop](https://github.com/aristocratos/btop).
 
 I made this project for [hackclub's Siege](https://siege.hackclub.com). It follows the Week's theme, 'Winter', because I added a 'Snow Day' theme (caution, it's really blinding...), a Nord theme, and the bar's characteres are now snowflakes by default. It also follows the 8th Week's framework theme because it uses two Golang  _frameworks_ to help display TUIs and get computer usage informations respectively, [TView](https://github.com/rivo/tview) and [Gopsutils](https://github.com/shirou/gopsutil).
